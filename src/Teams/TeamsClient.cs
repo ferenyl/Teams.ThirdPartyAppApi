@@ -8,19 +8,19 @@ namespace Teams.ThirdPartyAppApi.Teams;
 
 public class TeamsClient : TeamsClientBase
 {
-    private readonly BehaviorSubject<bool> _isMutedChanged = new(false);
-    private readonly BehaviorSubject<bool> _isCameraOnChanged = new(false);
-    private readonly BehaviorSubject<bool> _isHandRaisedChanged = new(false);
-    private readonly BehaviorSubject<bool> _isInMeetingChanged = new(false);
-    private readonly BehaviorSubject<bool> _isRecordingOnChanged = new(false);
-    private readonly BehaviorSubject<bool> _isBackgroundBlurredChanged = new(false);
-    private readonly BehaviorSubject<bool> _canToggleMuteChanged = new(false);
-    private readonly BehaviorSubject<bool> _canToggleVideoChanged = new(false);
-    private readonly BehaviorSubject<bool> _canToggleHandChanged = new(false);
-    private readonly BehaviorSubject<bool> _canToggleBlurChanged = new(false);
-    private readonly BehaviorSubject<bool> _canToggleRecordChanged = new(false);
-    private readonly BehaviorSubject<bool> _canLeaveChanged = new(false);
-    private readonly BehaviorSubject<bool> _canReactChanged = new(false);
+    private readonly BehaviorSubject<bool> _whenIsMutedChanged = new(false);
+    private readonly BehaviorSubject<bool> _whenIsCameraOnChanged = new(false);
+    private readonly BehaviorSubject<bool> _whenIsHandRaisedChanged = new(false);
+    private readonly BehaviorSubject<bool> _whenIsInMeetingChanged = new(false);
+    private readonly BehaviorSubject<bool> _whenIsRecordingOnChanged = new(false);
+    private readonly BehaviorSubject<bool> _whenIsBackgroundBlurredChanged = new(false);
+    private readonly BehaviorSubject<bool> _whenCanToggleMuteChanged = new(false);
+    private readonly BehaviorSubject<bool> _whenCanToggleVideoChanged = new(false);
+    private readonly BehaviorSubject<bool> _whenCanToggleHandChanged = new(false);
+    private readonly BehaviorSubject<bool> _whenCanToggleBlurChanged = new(false);
+    private readonly BehaviorSubject<bool> _whenCanToggleRecordChanged = new(false);
+    private readonly BehaviorSubject<bool> _whenCanLeaveChanged = new(false);
+    private readonly BehaviorSubject<bool> _whenCanReactChanged = new(false);
 
     
 
@@ -44,34 +44,34 @@ public class TeamsClient : TeamsClientBase
         
     }
 
-    public IObservable<bool> IsMutedChanged => _isMutedChanged;
-    public IObservable<bool> IsCameraOnChanged => _isCameraOnChanged;
-    public IObservable<bool> IsHandRaisedChanged => _isHandRaisedChanged;
-    public IObservable<bool> IsInMeetingChanged => _isInMeetingChanged;
-    public IObservable<bool> IsRecordingOnChanged => _isRecordingOnChanged;
-    public IObservable<bool> IsBackgroundBlurredChanged => _isBackgroundBlurredChanged;
-    public IObservable<bool> CanToggleMuteChanged => _canToggleMuteChanged;
-    public IObservable<bool> CanToggleVideoChanged => _canToggleVideoChanged;
-    public IObservable<bool> CanToggleHandChanged => _canToggleHandChanged;
+    public IObservable<bool> IsMutedChanged => _whenIsMutedChanged;
+    public IObservable<bool> IsCameraOnChanged => _whenIsCameraOnChanged;
+    public IObservable<bool> IsHandRaisedChanged => _whenIsHandRaisedChanged;
+    public IObservable<bool> IsInMeetingChanged => _whenIsInMeetingChanged;
+    public IObservable<bool> IsRecordingOnChanged => _whenIsRecordingOnChanged;
+    public IObservable<bool> IsBackgroundBlurredChanged => _whenIsBackgroundBlurredChanged;
+    public IObservable<bool> CanToggleMuteChanged => _whenCanToggleMuteChanged;
+    public IObservable<bool> CanToggleVideoChanged => _whenCanToggleVideoChanged;
+    public IObservable<bool> CanToggleHandChanged => _whenCanToggleHandChanged;
 
-    public IObservable<bool> CanToggleBlurChanged => _canToggleBlurChanged;
-    public IObservable<bool> CanToggleRecordChanged => _canToggleRecordChanged;
-    public IObservable<bool> CanLeaveChanged => _canLeaveChanged;
-    public IObservable<bool> CanReactChanged => _canReactChanged;
+    public IObservable<bool> CanToggleBlurChanged => _whenCanToggleBlurChanged;
+    public IObservable<bool> CanToggleRecordChanged => _whenCanToggleRecordChanged;
+    public IObservable<bool> CanLeaveChanged => _whenCanLeaveChanged;
+    public IObservable<bool> CanReactChanged => _whenCanReactChanged;
 
-    public bool IsMuted => _isMutedChanged.Value;
-    public bool IsCameraOn => _isCameraOnChanged.Value;
-    public bool IsHandRaised => _isHandRaisedChanged.Value;
-    public bool IsInMeeting => _isInMeetingChanged.Value;
-    public bool IsRecordingOn => _isRecordingOnChanged.Value;
-    public bool IsBackgroundBlurred => _isBackgroundBlurredChanged.Value;
-    public bool CanToggleMute => _canToggleMuteChanged.Value;
-    public bool CanToggleVideo => _canToggleVideoChanged.Value;
-    public bool CanToggleHand => _canToggleHandChanged.Value;
-    public bool CanToggleBlur => _canToggleBlurChanged.Value;
-    public bool CanToggleRecord => _canToggleRecordChanged.Value;
-    public bool CanLeave => _canLeaveChanged.Value;
-    public bool CanReact => _canReactChanged.Value;
+    public bool IsMuted => _whenIsMutedChanged.Value;
+    public bool IsCameraOn => _whenIsCameraOnChanged.Value;
+    public bool IsHandRaised => _whenIsHandRaisedChanged.Value;
+    public bool IsInMeeting => _whenIsInMeetingChanged.Value;
+    public bool IsRecordingOn => _whenIsRecordingOnChanged.Value;
+    public bool IsBackgroundBlurred => _whenIsBackgroundBlurredChanged.Value;
+    public bool CanToggleMute => _whenCanToggleMuteChanged.Value;
+    public bool CanToggleVideo => _whenCanToggleVideoChanged.Value;
+    public bool CanToggleHand => _whenCanToggleHandChanged.Value;
+    public bool CanToggleBlur => _whenCanToggleBlurChanged.Value;
+    public bool CanToggleRecord => _whenCanToggleRecordChanged.Value;
+    public bool CanLeave => _whenCanLeaveChanged.Value;
+    public bool CanReact => _whenCanReactChanged.Value;
 
 
     protected override Uri BuildUri()
