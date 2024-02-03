@@ -1,13 +1,13 @@
 # This workflow will build a .NET project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
 
-name: .NET
+name: .NET Core CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ develop, main ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ develop, main ]
 
 jobs:
   build:
@@ -16,13 +16,25 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.x
-    - name: Restore dependencies
+        dotnet-version: 8.0.x
+
+    - name: Install dependencies
       run: dotnet restore
+
     - name: Build
       run: dotnet build --no-restore
+
     - name: Test
       run: dotnet test --no-build --verbosity normal
+
+    - name: Pack
+      run: dotnet pack --no-build --configuration Release
+      if: github.ref == 'refs/heads/main'
+
+    - name: Push
+      run: dotnet nuget push "**/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+      if: github.ref == 'refs/heads/main'
