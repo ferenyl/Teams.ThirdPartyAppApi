@@ -12,7 +12,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Teams.ThirdPartyAppApi.ConsoleDemo", "demo\Teams.ThirdPartyAppApi.ConsoleDemo.csproj", "{6885BECF-397F-4DFD-8DA8-381606DFE59B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Teams.ThirdPartyAppApi.Tests", "Teams.ThirdPartyAppApi.Tests\Teams.ThirdPartyAppApi.Tests.csproj", "{766B67A3-C819-4AE6-8E64-C52952748885}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Teams.ThirdPartyAppApi.Tests", "Teams.ThirdPartyAppApi.Tests\Teams.ThirdPartyAppApi.Tests.csproj", "{766B67A3-C819-4AE6-8E64-C52952748885}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{030A3BE2-66C5-458F-8D5F-388D4B32B2AB}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\dotnet.yml = .github\workflows\dotnet.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
