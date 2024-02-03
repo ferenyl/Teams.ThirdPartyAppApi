@@ -59,6 +59,20 @@ public class TeamsClient : TeamsClientBase
     public IObservable<bool> CanLeaveChanged => _canLeaveChanged;
     public IObservable<bool> CanReactChanged => _canReactChanged;
 
+    public bool IsMuted => _isMutedChanged.Value;
+    public bool IsCameraOn => _isCameraOnChanged.Value;
+    public bool IsHandRaised => _isHandRaisedChanged.Value;
+    public bool IsInMeeting => _isInMeetingChanged.Value;
+    public bool IsRecordingOn => _isRecordingOnChanged.Value;
+    public bool IsBackgroundBlurred => _isBackgroundBlurredChanged.Value;
+    public bool CanToggleMute => _canToggleMuteChanged.Value;
+    public bool CanToggleVideo => _canToggleVideoChanged.Value;
+    public bool CanToggleHand => _canToggleHandChanged.Value;
+    public bool CanToggleBlur => _canToggleBlurChanged.Value;
+    public bool CanToggleRecord => _canToggleRecordChanged.Value;
+    public bool CanLeave => _canLeaveChanged.Value;
+    public bool CanReact => _canReactChanged.Value;
+
 
     protected override Uri BuildUri()
     {
