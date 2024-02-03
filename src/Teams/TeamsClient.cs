@@ -94,19 +94,19 @@ public class TeamsClient : TeamsClientBase
         if (message.MeetingUpdate is null)
             return;
 
-        _isMutedChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsMuted);
-        _isCameraOnChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsCameraOn);
-        _isHandRaisedChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsHandRaised);
-        _isInMeetingChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsInMeeting);
-        _isRecordingOnChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsRecordingOn);
-        _isBackgroundBlurredChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsBackgroundBlurred);
-        _canToggleMuteChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleMute);
-        _canToggleVideoChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleVideo);
-        _canToggleHandChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleHand);
-        _canToggleBlurChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleBlur);
-        _canToggleRecordChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleRecord);
-        _canLeaveChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanLeave);
-        _canReactChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanReact);
+        _whenIsMutedChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsMuted);
+        _whenIsCameraOnChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsCameraOn);
+        _whenIsHandRaisedChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsHandRaised);
+        _whenIsInMeetingChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsInMeeting);
+        _whenIsRecordingOnChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsRecordingOn);
+        _whenIsBackgroundBlurredChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsBackgroundBlurred);
+        _whenCanToggleMuteChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleMute);
+        _whenCanToggleVideoChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleVideo);
+        _whenCanToggleHandChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleHand);
+        _whenCanToggleBlurChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleBlur);
+        _whenCanToggleRecordChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleRecord);
+        _whenCanLeaveChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanLeave);
+        _whenCanReactChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanReact);
     }
 
     private async Task SendCommand(MeetingAction action)
@@ -181,7 +181,7 @@ public class TeamsClient : TeamsClientBase
 
     public async Task ToggleBackgroundBlur()
     {
-        if (_isBackgroundBlurredChanged.Value)
+        if (_whenIsBackgroundBlurredChanged.Value)
         {
             await SendCommand(MeetingAction.UnblurBackground);
         }
