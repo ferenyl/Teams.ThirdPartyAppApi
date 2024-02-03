@@ -74,7 +74,7 @@ jobs:
       run: echo "::set-output name=package::$(basename $(find ./artifacts -name "*.nupkg"))"
       if: github.ref == 'refs/heads/main'
 
-   - name: Generate release notes
+    - name: Generate release notes
       id: release_notes
       run: |
         # Get commit messages since last tag
