@@ -9,7 +9,7 @@ internal static class ObservableExtensions
         if (subject.IsDisposed)
             return;
 
-        if (subject.TryGetValue(out var oldValue) && EqualityComparer<T>.Default.Equals(oldValue, value))
+        if (subject.TryGetValue(out var oldValue) && !EqualityComparer<T>.Default.Equals(oldValue, value))
         {
             subject.OnNext(value);
         }

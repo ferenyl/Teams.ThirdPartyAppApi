@@ -11,28 +11,34 @@ public abstract class TeamsClientBase
     protected readonly Subject<string> _receivedMessages = new();
     protected readonly bool _autoReconnect;
     protected readonly CancellationToken _cancellationToken;
+    
     private Uri Uri { get; set; }
     private readonly WebSocketHandler _socket;
     protected string Token { get; set; } = string.Empty;
     protected string Url { get; }
+    protected string Port { get; }
+    protected readonly ClientInformation _clientInformation;
 
     protected readonly JsonSerializerOptions _serializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    protected TeamsClientBase(string url, string token, bool autoReconnect, CancellationToken cancellationToken)
+    protected TeamsClientBase(string url,string port, string token, bool autoReconnect, ClientInformation clientInformation, CancellationToken cancellationToken)
     {
         Token = token;
         Url = url;
+        Port = string.IsNullOrEmpty(port) ? "8124" : port;
         _autoReconnect = autoReconnect;
         _cancellationToken = cancellationToken;
+        _clientInformation = clientInformation;
         Uri = BuildUri();
 
         _socket = new WebSocketHandler(Uri, autoReconnect);
 
-        _socket.ConnectionStatus
-            .Subscribe(state => _isConnectedChanged.OnNextIfValueChanged(state == WebSocketState.Open));
+        _ = _socket.ConnectionStatus
+            .Subscribe(state =>
+            _isConnectedChanged.OnNextIfValueChanged(state == WebSocketState.Open));
 
         _socket.ReceivedMessages.Subscribe(message => _receivedMessages.OnNext(message));
     }
@@ -57,7 +63,7 @@ public abstract class TeamsClientBase
     {
         await _socket.ReconnectAsync();
     }
-    protected async Task SendCommand(string clientMessage)
+    internal async Task SendCommand(string clientMessage)
     {
         await _socket.SendMessageAsync(clientMessage);
     }

@@ -28,25 +28,22 @@ public class NewTeamsClient : TeamsClientBase
     private readonly BehaviorSubject<bool> _canStopSharingChanged = new(false);
     private readonly BehaviorSubject<bool> _canPairChanged = new(false);
     private int RequestId { get; set; }
-    private readonly string _manufacturer;
-    private readonly string _device;
-    private readonly string _app;
-    private readonly string _appVersion;
 
-    public NewTeamsClient(string url, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default) : base(url, string.Empty, autoReconnect, cancellationToken)
+    public NewTeamsClient(string url, string port, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default) 
+    : base(url, port, string.Empty, autoReconnect, new ClientInformation(manufacturer, device, app, appVersion), cancellationToken)
     {
-        _manufacturer = manufacturer;
-        _device = device;
-        _app = app;
-        _appVersion = appVersion;
-
         IsConnectedChanged
-             .Select(IsConnected => IsConnected ? Observable.Empty<Unit>() : Observable.FromAsync(async () => await QueryState()))
+             .Select(IsConnected => IsConnected ? Observable.FromAsync(async () => await QueryState()) : Observable.Empty<Unit>())
              .Concat()
              .Subscribe();
 
         ReceivedMessages
             .Subscribe(OnReceived);
+    }
+
+    public NewTeamsClient(string url, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default) 
+    : this(url: url, port: string.Empty, manufacturer: manufacturer, device: device, app: app, appVersion: appVersion, autoReconnect: autoReconnect, cancellationToken: cancellationToken)
+    {
     }
 
     public IObservable<string> TokenChanged => _tokenChanged;
@@ -74,7 +71,7 @@ public class NewTeamsClient : TeamsClientBase
     {
         var urlencoder = UrlEncoder.Default;
         var tokenString = string.IsNullOrEmpty(Token) ? "" : $"token={Token}&";
-        return new($"ws://{Url}:8124?{tokenString}protocol-version=2.0.0&manufacturer={urlencoder.Encode(_manufacturer)}&device={urlencoder.Encode(_device)}&app={urlencoder.Encode(_app)}&app-version={urlencoder.Encode(_appVersion)}");
+        return new($"ws://{Url}:{Port}?{tokenString}protocol-version=2.0.0&manufacturer={urlencoder.Encode(_clientInformation.Manufacturer)}&device={urlencoder.Encode(_clientInformation.Device)}&app={urlencoder.Encode(_clientInformation.App)}&app-version={urlencoder.Encode(_clientInformation.AppVersion)}");
     }
 
 
@@ -103,7 +100,6 @@ public class NewTeamsClient : TeamsClientBase
             Token = message.TokenRefresh;
             return;
         }
-
 
         if (message.MeetingUpdate is null)
             return;
