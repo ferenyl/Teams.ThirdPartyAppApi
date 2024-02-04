@@ -12,11 +12,11 @@
     <RepositoryUrl>https://github.com/ferenyl/Teams.ThirdPartyAppApi.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>Microsoft Teams; API</PackageTags>
-    <PackageReleaseNotes>improved resilience &amp; error handling</PackageReleaseNotes>
+    <PackageReleaseNotes>https://github.com/ferenyl/Teams.ThirdPartyAppApi/releases</PackageReleaseNotes>
     <PackageId>$(AssemblyName)</PackageId>
     <Description>API Client for the client side Teams API</Description>
     <PackageProjectUrl>https://github.com/ferenyl/Teams.ThirdPartyAppApi</PackageProjectUrl>
-    <AssemblyVersion>0.8.0.3</AssemblyVersion>
+    <AssemblyVersion>0.8.14</AssemblyVersion>
     <FileVersion>$(AssemblyVersion)</FileVersion>
     <Version>$(AssemblyVersion)</Version>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>

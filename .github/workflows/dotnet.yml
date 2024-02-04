@@ -15,10 +15,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
 
@@ -39,14 +39,14 @@ jobs:
 
         # Bump version
         NEW_VERSION=$(echo "$VERSION" | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')
-        echo "Bumping version from $VERSION"
+        echo "Bumping version from $VERSION to $NEW_VERSION"
 
         # Update version in .csproj file
 
         sed -i "s/<AssemblyVersion>$VERSION<\/AssemblyVersion>/<AssemblyVersion>$NEW_VERSION<\/AssemblyVersion>/g" ./src/Teams.ThirdPartyAppApi.csproj
 
         # Set output
-        echo "::set-output name=NEW_VERSION::$NEW_VERSION"
+        echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
       if: github.ref == 'refs/heads/main'
 
     - name: Commit and push
@@ -63,13 +63,9 @@ jobs:
       run: dotnet pack ./src/Teams.ThirdPartyAppApi.csproj  --configuration Release --output ./artifacts
       if: github.ref == 'refs/heads/main'
 
-    - name: Push
-      run: dotnet nuget push "./artifacts/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
-      if: github.ref == 'refs/heads/main'
-
     - name: Get NuGet package name
       id: pkg
-      run: echo "::set-output name=package::$(basename $(find ./artifacts -name "*.nupkg"))"
+      run: echo "PACKAGENAME=$(basename $(find ./artifacts -name '*.nupkg')) >> $GITHUB_OUTPUT"
       if: github.ref == 'refs/heads/main'
 
     - name: Generate release notes
@@ -79,18 +75,22 @@ jobs:
         RELEASE_NOTES="$(git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"- %s")"
         
         # Set output
-        echo "::set-output name=notes::$RELEASE_NOTES"
+        echo  "NOTES=$RELEASE_NOTES >> $GITHUB_OUTPUT"
       if: github.ref == 'refs/heads/main'
 
-    - name: Create GitHub Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+    - name: create release
+      uses: ncipollo/release-action@v1.13.0
       with:
-        tag_name: v${{ steps.bump_version.outputs.NEW_VERSION }}
-        release_name: Release v${{ steps.bump_version.outputs.NEW_VERSION }}
-        body: ${{ steps.release_notes.outputs.notes }}
-        draft: false
+        artifacts: "./artifacts/*.nupkg, ./artifacts/*.snupkg"
+        body:  ${{ steps.release_notes.outputs.NOTES }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: v${{ steps.bump_version.outputs.NEW_VERSION }}
         prerelease: false
+        draft: false
+        name: Release v${{ steps.bump_version.outputs.NEW_VERSION }}
+        generateReleaseNotes: true
+      if: github.ref == 'refs/heads/main'
+
+    - name: Push
+      run: dotnet nuget push "./artifacts/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
       if: github.ref == 'refs/heads/main'
