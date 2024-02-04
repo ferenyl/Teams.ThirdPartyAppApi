@@ -8,7 +8,6 @@
     <Authors>Ferenyl</Authors>
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <Title>Client for teams third party api</Title>
     <RepositoryUrl>https://github.com/ferenyl/TeamsLocalApi.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -18,7 +17,7 @@
     <Description>API Client for the client side Teams API</Description>
     <PackageProjectUrl>https://github.com/ferenyl/TeamsLocalApi</PackageProjectUrl>
     <VersionPrefix>0.7.0</VersionPrefix>
-    <VersionSuffix>1</VersionSuffix>
+    <VersionSuffix></VersionSuffix>
     <FileVersion>$(AssemblyVersion)</FileVersion>
     <Version>$(AssemblyVersion)</Version>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
