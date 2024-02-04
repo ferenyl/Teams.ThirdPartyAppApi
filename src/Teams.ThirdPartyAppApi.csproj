@@ -9,13 +9,13 @@
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <Title>Client for teams third party api</Title>
-    <RepositoryUrl>https://github.com/ferenyl/TeamsLocalApi.git</RepositoryUrl>
+    <RepositoryUrl>https://github.com/ferenyl/Teams.ThirdPartyAppApi.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>Microsoft Teams; API</PackageTags>
     <PackageReleaseNotes>improved resilience &amp; error handling</PackageReleaseNotes>
     <PackageId>$(AssemblyName)</PackageId>
     <Description>API Client for the client side Teams API</Description>
-    <PackageProjectUrl>https://github.com/ferenyl/TeamsLocalApi</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/ferenyl/Teams.ThirdPartyAppApi</PackageProjectUrl>
     <AssemblyVersion>0.8.0.2</AssemblyVersion>
     <FileVersion>$(AssemblyVersion)</FileVersion>
     <Version>$(AssemblyVersion)</Version>
