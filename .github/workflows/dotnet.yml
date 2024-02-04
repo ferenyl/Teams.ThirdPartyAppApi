@@ -79,7 +79,7 @@ jobs:
         RELEASE_NOTES="$(git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"- %s")"
         
         # Set output
-        echo  "NOTES=$RELEASE_NOTES" >> $GITHUB_OUTPUT"
+        echo  "NOTES=$RELEASE_NOTES >> $GITHUB_OUTPUT"
       if: github.ref == 'refs/heads/main'
 
     - name: create release
