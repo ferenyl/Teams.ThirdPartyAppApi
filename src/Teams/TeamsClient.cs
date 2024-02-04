@@ -1,5 +1,4 @@
-﻿using System.ComponentModel;
-using System.Reactive;
+﻿using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text.Json;
@@ -27,9 +26,7 @@ public class TeamsClient : TeamsClientBase
     public string Manufacturer { get; set; } = "Elgato";
     public string Device { get; set; } = "Stream Deck";
 
-
-
-    public TeamsClient(string url, string token = "", bool autoReconnect = false, CancellationToken cancellationToken = default) : base(url, token, autoReconnect, cancellationToken)
+    public TeamsClient(string url, string port, string token = "", bool autoReconnect = false, CancellationToken cancellationToken = default) : base(url, port, token, autoReconnect, new ClientInformation(), cancellationToken)
     {
 
         IsConnectedChanged
@@ -42,6 +39,10 @@ public class TeamsClient : TeamsClientBase
         ReceivedMessages
             .Subscribe(OnReceived);
         
+    }
+
+    public TeamsClient(string url, string token = "", bool autoReconnect = false, CancellationToken cancellationToken = default) : this(url, string.Empty, token, autoReconnect, cancellationToken)
+    {   
     }
 
     public IObservable<bool> IsMutedChanged => _whenIsMutedChanged;
@@ -76,7 +77,7 @@ public class TeamsClient : TeamsClientBase
 
     protected override Uri BuildUri()
     {
-        return new($"ws://{Url}:8124?token={Token}");
+        return new($"ws://{Url}:{Port}?token={Token}");
     }
 
     protected void OnReceived(string json)

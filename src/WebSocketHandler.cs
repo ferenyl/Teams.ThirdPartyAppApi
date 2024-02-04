@@ -9,23 +9,21 @@ using Teams.ThirdPartyAppApi.Adapters;
 namespace Teams.ThirdPartyAppApi;
 internal class WebSocketHandler
 {
-    private readonly IClientWebSocket _webSocket;
+    private IClientWebSocket _webSocket;
     private readonly BehaviorSubject<WebSocketState> _statusSubject;
     private readonly Subject<string> _messageSubject = new Subject<string>();
     internal readonly Uri _uri;
     private readonly bool _autoReconnect;
     internal CancellationToken _cancellationToken;
     private CancellationTokenSource? _receiveCancellationTokenSource;
-    private readonly SemaphoreSlim _connectLock = new SemaphoreSlim(1, 1);
-
-    // TODO: add send and recieve locks
-    private readonly SemaphoreSlim _sendLock = new SemaphoreSlim(1, 1);
-    private readonly SemaphoreSlim _recieveLock = new SemaphoreSlim(1, 1);
+    private readonly SemaphoreSlim _connectLock = new(1, 1);
 
     private bool _manuallyDisconnected = false;
 
     public IObservable<WebSocketState> ConnectionStatus => _statusSubject.AsObservable();
     public IObservable<string> ReceivedMessages => _messageSubject.AsObservable();
+
+
 
     public WebSocketHandler(Uri uri, bool autoReconnect) : this(uri, autoReconnect, new ClientWebSocketAdapter(), new BehaviorSubject<WebSocketState>(WebSocketState.None))
     {
@@ -43,10 +41,26 @@ internal class WebSocketHandler
         _autoReconnect = autoReconnect;
         _receiveCancellationTokenSource = null;
         ConnectionStatus
-            .Where(state => (state == WebSocketState.Aborted || state == WebSocketState.Closed) && _autoReconnect)
+            .Where(state => 
+            (state is WebSocketState.Aborted or WebSocketState.Closed) && _autoReconnect)
             .Subscribe(async _ => await ReconnectAsync());
+
+        if (autoReconnect)
+        {
+            var timer = new Timer((state) => AutoReconnectCallback(), null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+        }
+
     }
 
+    private void AutoReconnectCallback()
+    {
+        if (_webSocket.State is WebSocketState.Connecting or WebSocketState.Open or WebSocketState.None)
+        {
+            return;
+        }
+
+        _statusSubject.OnNext(_webSocket.State);
+    }
 
     public async Task ConnectAsync(CancellationToken cancellationToken)
     {
@@ -54,20 +68,30 @@ internal class WebSocketHandler
         try
         {
             await WaitForConnection(cancellationToken);
-
-            if (_webSocket.State is WebSocketState.None or WebSocketState.Closed or WebSocketState.Aborted)
+            if (_webSocket.State is WebSocketState.Closed or WebSocketState.Aborted)
             {
+                _webSocket.CreateNewSocket();
+            }
+
+            if (_webSocket.State is WebSocketState.None)
+            {
+
                 _cancellationToken = cancellationToken;
                 _manuallyDisconnected = false;
                 await _webSocket.ConnectAsync(_uri, cancellationToken);
-                _statusSubject.OnNext(_webSocket.State);
-                await StartReceivingMessagesAsync(cancellationToken);
+                _statusSubject.OnNextIfValueChanged(_webSocket.State);
+                StartReceivingMessagesAsync(cancellationToken);
             }
+        }
+        catch (Exception e)
+        {
+            //silent
         }
         finally
         {
             _connectLock.Release();
         }
+
     }
 
     private async Task WaitForConnection(CancellationToken cancellationToken)
@@ -81,11 +105,11 @@ internal class WebSocketHandler
         }
     }
 
-    private async Task StartReceivingMessagesAsync(CancellationToken cancellationToken)
+    private void StartReceivingMessagesAsync(CancellationToken cancellationToken)
     {
         _receiveCancellationTokenSource = new CancellationTokenSource();
         var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _receiveCancellationTokenSource.Token).Token;
-        await Task.Run(() => ReceiveMessagesAsync(combinedToken), cancellationToken);
+        Task.Factory.StartNew(() => ReceiveMessagesAsync(combinedToken), combinedToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
     }
 
     private void StopReceivingMessages()
@@ -95,7 +119,6 @@ internal class WebSocketHandler
 
     private async Task ReceiveMessagesAsync(CancellationToken cancellationToken)
     {
-        // TODO: add semaphore to prevent multiple recieve attempts
         var buffer = new byte[1024 * 4];
         while (!cancellationToken.IsCancellationRequested && _webSocket.State == WebSocketState.Open)
         {
@@ -103,12 +126,15 @@ internal class WebSocketHandler
             var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
             _messageSubject.OnNext(message);
         }
+
+        if (!cancellationToken.IsCancellationRequested && _webSocket.State != WebSocketState.Open)
+        {
+            await ReconnectAsync();
+        }
     }
 
     public async Task SendMessageAsync(string message)
     {
-
-        // TODO: add semaphore to prevent multiple send attempts
 
         await WaitForConnection(_cancellationToken);
 
@@ -117,19 +143,32 @@ internal class WebSocketHandler
             var buffer = Encoding.UTF8.GetBytes(message);
             await _webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, _cancellationToken);
         }
+        else if (_webSocket.State is not WebSocketState.Open and not WebSocketState.None && _autoReconnect)
+        {
+            await ReconnectAsync();
+
+            if (_webSocket.State is WebSocketState.Open)
+                await SendMessageAsync(message);
+        }
         else
         {
-            throw new InvalidOperationException("WebSocket is not in a valid state to send a message.");
+            // socket cloesd
         }
+
     }
 
     public async Task ReconnectAsync()
     {
+        await WaitForConnection(_cancellationToken);
+
+        if (_webSocket.State is WebSocketState.Open or WebSocketState.Connecting)
+        {
+            return;
+        }
+
         if (!_cancellationToken.IsCancellationRequested && !_manuallyDisconnected)
         {
-            await DisconnectAsync(_cancellationToken);
-            await _webSocket.ConnectAsync(_uri, _cancellationToken);
-            _statusSubject.OnNext(_webSocket.State);
+            await ConnectAsync(_cancellationToken);
         }
     }
 
@@ -146,6 +185,6 @@ internal class WebSocketHandler
 
         await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", cancellationToken);
         StopReceivingMessages();
-        _statusSubject.OnNext(_webSocket.State);
+        _statusSubject.OnNextIfValueChanged(_webSocket.State);
     }
 }

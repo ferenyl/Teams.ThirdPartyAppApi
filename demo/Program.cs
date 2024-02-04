@@ -35,12 +35,14 @@ async Task NewTeams()
 
     Teams.IsConnectedChanged
         .Subscribe(connected => WriteLine(connected ? "Event: Connected" : "Event: Disconnected"));
+    Teams.IsInMeetingChanged
+        .Subscribe(connected => WriteLine(connected ? "Event: InMeeting" : "Event: NotInMeeting"));
 
     WriteLine("Connecting...");
     await Teams.Connect();
     WriteLine("Connected...");
 
-    var methods = Teams.GetType().GetMethods().Where(m => m.IsPublic && !m.Name.StartsWith("get_")).ToArray();
+    var methods = Teams.GetType().GetMethods().Where(m => m.IsPublic && !m.Name.StartsWith("get_") && !m.Name.StartsWith("set_")).ToArray();
 
     string choice;
 
@@ -75,7 +77,7 @@ async Task NewTeams()
                 if (!int.TryParse(choice, out int call))
                     continue;
 
-                _ = methods[call].Invoke(Teams, [CancellationToken.None]);
+                _ = methods[call].Invoke(Teams, []);
                 break;
         }
 
@@ -91,12 +93,14 @@ async Task OldTeams()
 
     Teams.IsConnectedChanged
         .Subscribe(connected => WriteLine(connected ? "Event: Connected" : "Event: Disconnected"));
+    Teams.IsInMeetingChanged
+        .Subscribe(connected => WriteLine(connected ? "Event: InMeeting" : "Event: NotInMeeting"));
 
     WriteLine("Connecting...");
     await Teams.Connect();
     WriteLine("Connected...");
 
-    var methods = Teams.GetType().GetMethods().Where(m => m.IsPublic).ToArray();
+    var methods = Teams.GetType().GetMethods().Where(m => m.IsPublic && !m.Name.StartsWith("get_") && !m.Name.StartsWith("set_")).ToArray();
     string choice;
     do
     {
@@ -129,7 +133,7 @@ async Task OldTeams()
                 if (!int.TryParse(choice, out int call))
                     continue;
 
-                _ = methods[call].Invoke(Teams, [CancellationToken.None]);
+                _ = methods[call].Invoke(Teams, []);
                 break;
         }
 
