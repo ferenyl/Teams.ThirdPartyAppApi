@@ -16,7 +16,7 @@
     <PackageId>$(AssemblyName)</PackageId>
     <Description>API Client for the client side Teams API</Description>
     <PackageProjectUrl>https://github.com/ferenyl/Teams.ThirdPartyAppApi</PackageProjectUrl>
-    <AssemblyVersion>0.8.12</AssemblyVersion>
+    <AssemblyVersion>0.8.13</AssemblyVersion>
     <FileVersion>$(AssemblyVersion)</FileVersion>
     <Version>$(AssemblyVersion)</Version>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
