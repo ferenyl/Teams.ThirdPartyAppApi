@@ -83,7 +83,7 @@ jobs:
       if: github.ref == 'refs/heads/main'
 
     - name: create release
-      uses: ncipollo/release-action@v1
+      uses: ncipollo/release-action@v1.13.0
       with:
         artifacts: "./artifacts/*.nupkg, ./artifacts/*.snupkg"
         body:  ${{ steps.release_notes.outputs.NOTES }}
