@@ -62,7 +62,7 @@ jobs:
 
 
     - name: Pack
-      run: dotnet pack ./src/Teams.ThirdPartyAppApi.csproj --no-build --configuration Release --output ./artifacts
+      run: dotnet pack ./src/Teams.ThirdPartyAppApi.csproj  --configuration Release --output ./artifacts
       if: github.ref == 'refs/heads/main'
 
     - name: Push
