@@ -88,8 +88,9 @@ jobs:
         prerelease: false
         draft: false
         name: Release v${{ steps.bump_version.outputs.NEW_VERSION }}
+        generateReleaseNotes: true
       if: github.ref == 'refs/heads/main'
 
-    - name: Push
-      run: dotnet nuget push "./artifacts/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
-      if: github.ref == 'refs/heads/main'
+    # - name: Push
+    #   run: dotnet nuget push "./artifacts/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+    #   if: github.ref == 'refs/heads/main'
