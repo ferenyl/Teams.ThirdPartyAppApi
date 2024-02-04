@@ -35,16 +35,15 @@ jobs:
       id: bump_version
       run: |
         # Extract version from .csproj file
-        VERSION=$(grep -oP '(?<=<Version>).*?(?=</Version>)' ./src/Teams.ThirdPartyAppApi.csproj)
+        VERSION=$(grep -oP '(?<=<AssemblyVersion>).*?(?=</AssemblyVersion>)' ./src/Teams.ThirdPartyAppApi.csproj)
 
         # Bump version
         NEW_VERSION=$(echo "$VERSION" | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')
-        echo "Bumping version from $VERSION to $NEW_VERSION"
+        echo "Bumping version from $VERSION"
 
         # Update version in .csproj file
-        sed -i "s#<Version>$VERSION</Version>#<Version>$NEW_VERSION</Version>#g" ./src/Teams.ThirdPartyAppApi.csproj
 
-
+        sed -i "s/<AssemblyVersion>$VERSION<\/AssemblyVersion>/<AssemblyVersion>$NEW_VERSION<\/AssemblyVersion>/g" ./src/Teams.ThirdPartyAppApi.csproj
 
         # Set output
         echo "::set-output name=NEW_VERSION::$NEW_VERSION"
