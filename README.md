@@ -1,4 +1,6 @@
 # Third-party app API Client
+![main](https://github.com/ferenyl/Teams.ThirdPartyAppApi/actions/workflows/dotnet.yml/badge.svg?branch=main) ![NuGet Version](https://img.shields.io/nuget/v/Teams.ThirdPartyAppApi?style=flat)
+
 
 Use this Package to communicate with the [Microsoft Teams Third-party app API](https://support.microsoft.com/en-us/office/connect-third-party-devices-to-teams-aabca9f2-47bb-407f-9f9b-81a104a883d6)
 
