@@ -63,10 +63,6 @@ jobs:
       run: dotnet pack ./src/Teams.ThirdPartyAppApi.csproj  --configuration Release --output ./artifacts
       if: github.ref == 'refs/heads/main'
 
-    # - name: Push
-    #   run: dotnet nuget push "./artifacts/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
-    #   if: github.ref == 'refs/heads/main'
-
     - name: Get NuGet package name
       id: pkg
       run: echo "PACKAGENAME=$(basename $(find ./artifacts -name '*.nupkg')) >> $GITHUB_OUTPUT"
@@ -92,4 +88,8 @@ jobs:
         prerelease: false
         draft: false
         name: Release v${{ steps.bump_version.outputs.NEW_VERSION }}
+      if: github.ref == 'refs/heads/main'
+
+    - name: Push
+      run: dotnet nuget push "./artifacts/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
       if: github.ref == 'refs/heads/main'
