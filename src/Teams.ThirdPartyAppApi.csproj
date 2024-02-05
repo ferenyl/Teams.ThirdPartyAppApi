@@ -23,7 +23,6 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>Icon.png</PackageIcon>
   </PropertyGroup>
-
   <ItemGroup>
     <None Include="..\Icon.png">
       <Pack>True</Pack>

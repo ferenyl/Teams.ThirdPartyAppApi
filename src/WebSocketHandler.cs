@@ -10,7 +10,8 @@ namespace Teams.ThirdPartyAppApi;
 internal class WebSocketHandler
 {
     private IClientWebSocket _webSocket;
-    private readonly BehaviorSubject<WebSocketState> _statusSubject;
+    private readonly BehaviorSubject<WebSocketState> _whenStateChanged;
+    private readonly Subject<WebSocketState> _whenStateChecked = new();
     private readonly Subject<string> _messageSubject = new Subject<string>();
     internal readonly Uri _uri;
     private readonly bool _autoReconnect;
@@ -20,7 +21,7 @@ internal class WebSocketHandler
 
     private bool _manuallyDisconnected = false;
 
-    public IObservable<WebSocketState> ConnectionStatus => _statusSubject.AsObservable();
+    public IObservable<WebSocketState> ConnectionStatus => _whenStateChanged.AsObservable();
     public IObservable<string> ReceivedMessages => _messageSubject.AsObservable();
 
 
@@ -33,23 +34,23 @@ internal class WebSocketHandler
     {
     }
 
-    internal WebSocketHandler(Uri uri, bool autoReconnect, IClientWebSocket clientWebSocket, BehaviorSubject<WebSocketState> statusSubject)
+    internal WebSocketHandler(Uri uri, bool autoReconnect, IClientWebSocket clientWebSocket, BehaviorSubject<WebSocketState> stateSubject)
     {
-        _statusSubject = statusSubject;
+        _whenStateChanged = stateSubject;
         _webSocket = clientWebSocket;
         _uri = uri;
         _autoReconnect = autoReconnect;
         _receiveCancellationTokenSource = null;
-        ConnectionStatus
+
+        _whenStateChanged
+            .CombineLatest(_whenStateChecked, (state, _) => state)
             .Where(state => 
-            (state is WebSocketState.Aborted or WebSocketState.Closed) && _autoReconnect)
+            _webSocket.State is WebSocketState.Aborted or WebSocketState.Closed 
+            && autoReconnect 
+            && !_manuallyDisconnected )
             .Subscribe(async _ => await ReconnectAsync());
 
-        if (autoReconnect)
-        {
-            var timer = new Timer((state) => AutoReconnectCallback(), null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
-        }
-
+        var timer = new Timer((state) => AutoReconnectCallback(), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
     }
 
     private void AutoReconnectCallback()
@@ -59,7 +60,7 @@ internal class WebSocketHandler
             return;
         }
 
-        _statusSubject.OnNext(_webSocket.State);
+        _whenStateChecked.OnNext(_webSocket.State);
     }
 
     public async Task ConnectAsync(CancellationToken cancellationToken)
@@ -79,11 +80,11 @@ internal class WebSocketHandler
                 _cancellationToken = cancellationToken;
                 _manuallyDisconnected = false;
                 await _webSocket.ConnectAsync(_uri, cancellationToken);
-                _statusSubject.OnNextIfValueChanged(_webSocket.State);
+                _whenStateChanged.OnNextIfValueChanged(_webSocket.State);
                 StartReceivingMessagesAsync(cancellationToken);
             }
         }
-        catch (Exception e)
+        catch (Exception)
         {
             //silent
         }
@@ -92,17 +93,6 @@ internal class WebSocketHandler
             _connectLock.Release();
         }
 
-    }
-
-    private async Task WaitForConnection(CancellationToken cancellationToken)
-    {
-        if (_webSocket.State is not WebSocketState.Connecting)
-            return;
-
-        while (!cancellationToken.IsCancellationRequested && _webSocket.State == WebSocketState.Connecting)
-        {
-            await Task.Delay(15, cancellationToken);
-        }
     }
 
     private void StartReceivingMessagesAsync(CancellationToken cancellationToken)
@@ -119,42 +109,29 @@ internal class WebSocketHandler
 
     private async Task ReceiveMessagesAsync(CancellationToken cancellationToken)
     {
+        await WaitForConnection(_cancellationToken);
         var buffer = new byte[1024 * 4];
         while (!cancellationToken.IsCancellationRequested && _webSocket.State == WebSocketState.Open)
         {
             var result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
+
+            if(result is null)
+                continue;
+
             var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
             _messageSubject.OnNext(message);
-        }
-
-        if (!cancellationToken.IsCancellationRequested && _webSocket.State != WebSocketState.Open)
-        {
-            await ReconnectAsync();
         }
     }
 
     public async Task SendMessageAsync(string message)
     {
-
         await WaitForConnection(_cancellationToken);
 
-        if (_webSocket.State == WebSocketState.Open)
-        {
-            var buffer = Encoding.UTF8.GetBytes(message);
-            await _webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, _cancellationToken);
-        }
-        else if (_webSocket.State is not WebSocketState.Open and not WebSocketState.None && _autoReconnect)
-        {
-            await ReconnectAsync();
+        if (_webSocket.State != WebSocketState.Open)
+            return;
 
-            if (_webSocket.State is WebSocketState.Open)
-                await SendMessageAsync(message);
-        }
-        else
-        {
-            // socket cloesd
-        }
-
+        var buffer = Encoding.UTF8.GetBytes(message);
+        await _webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, _cancellationToken);
     }
 
     public async Task ReconnectAsync()
@@ -162,11 +139,9 @@ internal class WebSocketHandler
         await WaitForConnection(_cancellationToken);
 
         if (_webSocket.State is WebSocketState.Open or WebSocketState.Connecting)
-        {
             return;
-        }
 
-        if (!_cancellationToken.IsCancellationRequested && !_manuallyDisconnected)
+        if (!_cancellationToken.IsCancellationRequested)
         {
             await ConnectAsync(_cancellationToken);
         }
@@ -176,15 +151,21 @@ internal class WebSocketHandler
     {
         _manuallyDisconnected = true;
 
-        WebSocketState[] validStates = [WebSocketState.Connecting, WebSocketState.Open, WebSocketState.CloseSent, WebSocketState.CloseReceived];
+        try { await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", cancellationToken); }
+        catch { }
 
-        if (!validStates.Contains(_webSocket.State))
-        {
-            return;
-        }
-
-        await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", cancellationToken);
         StopReceivingMessages();
-        _statusSubject.OnNextIfValueChanged(_webSocket.State);
+        _whenStateChanged.OnNextIfValueChanged(_webSocket.State);
     }
+
+    private async Task WaitForConnection(CancellationToken cancellationToken)
+    {
+        if (_webSocket.State is not WebSocketState.Connecting)
+            return;
+
+        while (!cancellationToken.IsCancellationRequested && _webSocket.State is WebSocketState.Connecting)
+        {
+            await Task.Delay(15, cancellationToken);
+        }
+    }    
 }

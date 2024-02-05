@@ -34,6 +34,7 @@ internal class ClientWebSocketAdapter : IClientWebSocket, IDisposable
 
         _clientWebSocket = new ClientWebSocket();
     }
+
     public WebSocketState State => _clientWebSocket.State;
     public WebSocketCloseStatus? CloseStatus => _clientWebSocket.CloseStatus;
     public string? CloseStatusDescription => _clientWebSocket.CloseStatusDescription;
