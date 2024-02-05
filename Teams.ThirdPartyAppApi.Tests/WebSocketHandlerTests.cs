@@ -19,7 +19,6 @@ public class WebSocketHandlerTests
         _statusSubject = new BehaviorSubject<WebSocketState>(WebSocketState.None);
         _webSocketHandler = new WebSocketHandler(_testUri, true, _mockClientWebSocket.Object, _statusSubject);
 
-
     }
 
     [Fact]
@@ -27,6 +26,8 @@ public class WebSocketHandlerTests
     {
         // Arrange
         _mockClientWebSocket.SetupGet(ws => ws.State).Returns(WebSocketState.None);
+        _mockClientWebSocket.Setup(ws => ws.ConnectAsync(_testUri, It.IsAny<CancellationToken>()))
+            .Callback(() => _mockClientWebSocket.SetupGet(ws => ws.State).Returns(WebSocketState.Open));
 
         // Act
         await _webSocketHandler.ConnectAsync(CancellationToken.None);
@@ -54,19 +55,25 @@ public class WebSocketHandlerTests
     {
         // Arrange
         var cancellationToken = CancellationToken.None;
-        _mockClientWebSocket.SetupGet(ws => ws.State).Returns(WebSocketState.Open);
+        _mockClientWebSocket.SetupGet(ws => ws.State).Returns(WebSocketState.Closed);
+
+        _mockClientWebSocket.Setup(ws => ws.CreateNewSocket())
+            .Callback(() => _mockClientWebSocket.SetupGet(ws => ws.State).Returns(WebSocketState.None));
+
+        _mockClientWebSocket.Setup(ws => ws.ConnectAsync(_testUri, It.IsAny<CancellationToken>()))
+            .Callback(() => _mockClientWebSocket.SetupGet(ws => ws.State).Returns(WebSocketState.Open));
 
         // Act
-        _statusSubject.OnNext(WebSocketState.Aborted);
+        _statusSubject.OnNext(WebSocketState.Closed);
 
         // Assert
-        _mockClientWebSocket.Verify(ws => ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", cancellationToken), Times.Once);
+        _mockClientWebSocket.Verify(ws => ws.CreateNewSocket(), Times.Once);
         _mockClientWebSocket.Verify(ws => ws.ConnectAsync(_testUri, cancellationToken), Times.Once);
         Assert.Equal(WebSocketState.Open, _statusSubject.Value);
     }
 
     [Fact]
-    public async Task ReconnectAsync_ShouldConnect_WhenManuallyDisconnected()
+    public async Task ReconnectAsync_ShouldNotConnect_WhenManuallyDisconnected()
     {
         // Arrange
         var cancellationToken = CancellationToken.None;
