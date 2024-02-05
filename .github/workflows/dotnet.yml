@@ -53,6 +53,8 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
+        git fetch --all
+        git pull
         git commit -am "Bump version to ${{ steps.bump_version.outputs.NEW_VERSION }}"
         git tag v${{ steps.bump_version.outputs.NEW_VERSION }}
         git push
