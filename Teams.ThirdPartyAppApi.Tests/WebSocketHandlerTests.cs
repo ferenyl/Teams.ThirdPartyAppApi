@@ -2,6 +2,7 @@
 using System.Net.WebSockets;
 using System.Reactive.Subjects;
 using Teams.ThirdPartyAppApi.Adapters;
+using Teams.ThirdPartyAppApi.Tests.Mocks;
 
 namespace Teams.ThirdPartyAppApi.Tests;
 
@@ -51,7 +52,7 @@ public class WebSocketHandlerTests
 
 
     [Fact]
-    public void ReconnectAsync_ShouldDisconnectAndConnect_WhenNotManuallyDisconnected()
+    public async Task ReconnectAsync_ShouldAutoConnect_WhenNotManuallyDisconnected()
     {
         // Arrange
         var cancellationToken = CancellationToken.None;
@@ -67,8 +68,8 @@ public class WebSocketHandlerTests
         _statusSubject.OnNext(WebSocketState.Closed);
 
         // Assert
-        _mockClientWebSocket.Verify(ws => ws.CreateNewSocket(), Times.Once);
-        _mockClientWebSocket.Verify(ws => ws.ConnectAsync(_testUri, cancellationToken), Times.Once);
+        await _mockClientWebSocket.AsyncVerify((ws) => ws.CreateNewSocket(), Times.Once(), TimeSpan.FromSeconds(7));
+        await _mockClientWebSocket.AsyncVerify(ws => ws.ConnectAsync(_testUri, cancellationToken), Times.Once(), TimeSpan.FromSeconds(7));
         Assert.Equal(WebSocketState.Open, _statusSubject.Value);
     }
 

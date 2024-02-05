@@ -67,4 +67,18 @@ public abstract class TeamsClientBase
     {
         await _socket.SendMessageAsync(clientMessage);
     }
+
+    internal bool TryDeserialize <T>(string json, out T? result)
+    {
+        try        
+        {
+            result = JsonSerializer.Deserialize<T>(json, _serializerOptions);
+            return true;
+        }
+        catch
+        {
+            result = default;
+            return false;
+        }
+    }
 }

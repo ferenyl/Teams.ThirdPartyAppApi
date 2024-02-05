@@ -21,7 +21,7 @@ public class TeamsClient : TeamsClientBase
     private readonly BehaviorSubject<bool> _whenCanLeaveChanged = new(false);
     private readonly BehaviorSubject<bool> _whenCanReactChanged = new(false);
 
-    
+
 
     public string Manufacturer { get; set; } = "Elgato";
     public string Device { get; set; } = "Stream Deck";
@@ -30,19 +30,19 @@ public class TeamsClient : TeamsClientBase
     {
 
         IsConnectedChanged
-             .Select(IsConnected => IsConnected 
-                ? Observable.Empty<Unit>() 
-                : Observable.FromAsync(async () =>  await SendCommand(MeetingAction.QueryMeetingState)))
+             .Select(IsConnected => IsConnected
+                ? Observable.Empty<Unit>()
+                : Observable.FromAsync(async () => await SendCommand(MeetingAction.QueryMeetingState)))
              .Concat()
              .Subscribe();
 
         ReceivedMessages
             .Subscribe(OnReceived);
-        
+
     }
 
     public TeamsClient(string url, string token = "", bool autoReconnect = false, CancellationToken cancellationToken = default) : this(url, string.Empty, token, autoReconnect, cancellationToken)
-    {   
+    {
     }
 
     public IObservable<bool> IsMutedChanged => _whenIsMutedChanged;
@@ -82,7 +82,8 @@ public class TeamsClient : TeamsClientBase
 
     protected void OnReceived(string json)
     {
-        var message = JsonSerializer.Deserialize<ServerMessage>(json, _serializerOptions) ?? throw new InvalidDataException();
+        if (!TryDeserialize<ServerMessage>(json, out var message) || message is null)
+            return;
 
         if (!string.IsNullOrEmpty(message.ErrorMsg))
         {
@@ -153,48 +154,39 @@ public class TeamsClient : TeamsClientBase
     public async Task UnMute()
         => await SendCommand(MeetingAction.Unmute);
 
-    public async Task ToggleVideo() => 
+    public async Task ToggleVideo() =>
         await SendCommand(MeetingAction.ToggleVideo);
 
-    public async Task ShowVideo() => 
+    public async Task ShowVideo() =>
         await SendCommand(MeetingAction.ShowVideo);
 
-    public async Task HideVideo() => 
+    public async Task HideVideo() =>
         await SendCommand(MeetingAction.HideVideo);
 
     public async Task ToggleHand() =>
         await SendCommand(MeetingAction.ToggleHand);
 
-    public async Task RaiseHand() => 
+    public async Task RaiseHand() =>
         await SendCommand(MeetingAction.RaiseHand);
 
-    public async Task LowerHand() => 
+    public async Task LowerHand() =>
         await SendCommand(MeetingAction.LowerHand);
 
-    public async Task ToggleRecordings() => 
+    public async Task ToggleRecordings() =>
         await SendCommand(MeetingAction.ToggleRecording);
 
-    public async Task StartRecording() => 
+    public async Task StartRecording() =>
         await SendCommand(MeetingAction.StartRecording);
 
-    public async Task StopRecording() => 
+    public async Task StopRecording() =>
         await SendCommand(MeetingAction.StartRecording);
 
-    public async Task ToggleBackgroundBlur()
-    {
-        if (_whenIsBackgroundBlurredChanged.Value)
-        {
-            await SendCommand(MeetingAction.UnblurBackground);
-        }
-        else
-        {
-            await SendCommand(MeetingAction.BlurBackground);
-        }
-    }
+    public async Task ToggleBackgroundBlur() =>
+        await SendCommand(_whenIsBackgroundBlurredChanged.Value ? MeetingAction.UnblurBackground : MeetingAction.BlurBackground);
 
-    public async Task BlurBackground() => 
+    public async Task BlurBackground() =>
         await SendCommand(MeetingAction.BlurBackground);
 
-    public async Task UnblurBackground() => 
+    public async Task UnblurBackground() =>
         await SendCommand(MeetingAction.UnblurBackground);
 }

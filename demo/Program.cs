@@ -10,28 +10,51 @@ CancelKeyPress += (source, args) =>
     args.Cancel = true;
     cts.Cancel();
 };
+var teamsIp = Environment.GetEnvironmentVariable("teamsip", EnvironmentVariableTarget.User) ?? "127.0.0.1";
+var teamsPort = Environment.GetEnvironmentVariable("teamsport", EnvironmentVariableTarget.User) ?? "8124";
+var teamsToken = Environment.GetEnvironmentVariable("teamstoken", EnvironmentVariableTarget.User) ?? string.Empty;
 
-WriteLine("Choose client:\r\n");
-WriteLine("1. new client:\r\n");
-WriteLine("2. old client:\r\n");
-var clientChoice = ReadLine() ?? "";
-
-switch (clientChoice)
+var envTeamsVersion = Environment.GetEnvironmentVariable("teamsversion", EnvironmentVariableTarget.User);
+if (envTeamsVersion is not null)
 {
-    case "1":
+    WriteLine("ENV TEAMSVERSION is set");
+    if (envTeamsVersion == "new")
+    {
+        WriteLine("Using new Teams client");
         await NewTeams();
-        break;
-    case "2":
+    }
+    else
+    {
+        WriteLine("Using old Teams client");
         await OldTeams();
-        break;
-    default:
-        break;
+    }
 }
+else
+{
+    WriteLine("Choose client:\r\n");
+    WriteLine("1. new client:\r\n");
+    WriteLine("2. old client:\r\n");
+    var clientChoice = ReadLine() ?? "";
+
+    switch (clientChoice)
+    {
+        case "1":
+            await NewTeams();
+            break;
+        case "2":
+            await OldTeams();
+            break;
+        default:
+            break;
+    }
+}
+
+
 
 
 async Task NewTeams()
 {
-    var Teams = new NewTeamsClient("127.0.0.1", "TeamsLocalApi", "TeamsLocalApi device", "TeamsLocalApi app", "1.0.0", autoReconnect: true, cts.Token) ?? throw new Exception("Could not create client");
+    var Teams = new NewTeamsClient(teamsIp, teamsPort, "TeamsLocalApi", "TeamsLocalApi device", "TeamsLocalApi app", "1.0.0", autoReconnect: true, cts.Token) ?? throw new Exception("Could not create client");
 
     Teams.IsConnectedChanged
         .Subscribe(connected => WriteLine(connected ? "Event: Connected" : "Event: Disconnected"));
@@ -89,7 +112,7 @@ async Task NewTeams()
 async Task OldTeams()
 {
 
-    var Teams = new TeamsClient("localhost", token: "", autoReconnect: true, cts.Token) ?? throw new Exception("Could not create client");
+    var Teams = new TeamsClient(teamsIp, teamsPort, token: teamsToken, autoReconnect: true, cts.Token) ?? throw new Exception("Could not create client");
 
     Teams.IsConnectedChanged
         .Subscribe(connected => WriteLine(connected ? "Event: Connected" : "Event: Disconnected"));
