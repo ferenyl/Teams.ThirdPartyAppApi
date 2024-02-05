@@ -86,7 +86,8 @@ public class NewTeamsClient : TeamsClientBase
 
     protected void OnReceived(string json)
     {
-        var message = JsonSerializer.Deserialize<ServerMessage>(json, _serializerOptions) ?? throw new InvalidDataException();
+        if(!TryDeserialize<ServerMessage>(json, out var message) || message is null)
+            return;
 
         if (!string.IsNullOrEmpty(message.ErrorMsg))
         {
