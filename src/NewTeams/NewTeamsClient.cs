@@ -29,11 +29,11 @@ public class NewTeamsClient : TeamsClientBase
     private readonly BehaviorSubject<bool> _canPairChanged = new(false);
     private int RequestId { get; set; }
 
-    public NewTeamsClient(string url, string port, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default) 
+    public NewTeamsClient(string url, string port, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
     : base(url, port, string.Empty, autoReconnect, new ClientInformation(manufacturer, device, app, appVersion), cancellationToken)
     {
         IsConnectedChanged
-             .Select(IsConnected => IsConnected ? Observable.FromAsync(async () => await QueryState()) : Observable.Empty<Unit>())
+             .Select(IsConnected => IsConnected ? Observable.FromAsync(async () => await QueryState()) : OnNotConnected())
              .Concat()
              .Subscribe();
 
@@ -41,7 +41,7 @@ public class NewTeamsClient : TeamsClientBase
             .Subscribe(OnReceived);
     }
 
-    public NewTeamsClient(string url, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default) 
+    public NewTeamsClient(string url, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
     : this(url: url, port: string.Empty, manufacturer: manufacturer, device: device, app: app, appVersion: appVersion, autoReconnect: autoReconnect, cancellationToken: cancellationToken)
     {
     }
@@ -86,7 +86,7 @@ public class NewTeamsClient : TeamsClientBase
 
     protected void OnReceived(string json)
     {
-        if(!TryDeserialize<ServerMessage>(json, out var message) || message is null)
+        if (!TryDeserialize<ServerMessage>(json, out var message) || message is null)
             return;
 
         if (!string.IsNullOrEmpty(message.ErrorMsg))
@@ -125,6 +125,31 @@ public class NewTeamsClient : TeamsClientBase
         _canToggleChatChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleChat);
         _canStopSharingChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanStopSharing);
         _canPairChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanPair);
+    }
+
+    private IObservable<Unit> OnNotConnected()
+    {
+        _isMutedChanged.OnNextIfValueChanged(false);
+        _isHandRaisedChanged.OnNextIfValueChanged(false);
+        _isInMeetingChanged.OnNextIfValueChanged(false);
+        _isRecordingOnChanged.OnNextIfValueChanged(false);
+        _isBackgroundBlurredChanged.OnNextIfValueChanged(false);
+        _isSharingChanged.OnNextIfValueChanged(false);
+        _hasUnreadMessagesChanged.OnNextIfValueChanged(false);
+        _isVideoOnChanged.OnNextIfValueChanged(false);
+
+        _canToggleMuteChanged.OnNextIfValueChanged(false);
+        _canToggleVideoChanged.OnNextIfValueChanged(false);
+        _canToggleHandChanged.OnNextIfValueChanged(false);
+        _canToggleBlurChanged.OnNextIfValueChanged(false);
+        _canLeaveChanged.OnNextIfValueChanged(false);
+        _canReactChanged.OnNextIfValueChanged(false);
+        _canToggleShareTrayChanged.OnNextIfValueChanged(false);
+        _canToggleChatChanged.OnNextIfValueChanged(false);
+        _canStopSharingChanged.OnNextIfValueChanged(false);
+        _canPairChanged.OnNextIfValueChanged(false);
+
+        return Observable.Empty<Unit>();
     }
 
     public async Task ToggleMute() =>

@@ -9,7 +9,7 @@ using Teams.ThirdPartyAppApi.Adapters;
 namespace Teams.ThirdPartyAppApi;
 internal class WebSocketHandler
 {
-    private IClientWebSocket _webSocket;
+    private readonly IClientWebSocket _webSocket;
     private readonly BehaviorSubject<WebSocketState> _whenStateChanged;
     private readonly Subject<WebSocketState> _whenStateChecked = new();
     private readonly Subject<string> _messageSubject = new Subject<string>();
@@ -141,26 +141,18 @@ internal class WebSocketHandler
 
     public async Task ReconnectAsync()
     {
-        await _reconnectLock.WaitAsync(_cancellationToken);
+        await WaitForConnection(_cancellationToken);
 
-        try
+        await Close();
+
+        if (_webSocket.State is WebSocketState.Open or WebSocketState.Connecting)
+            return;
+
+        if (!_cancellationToken.IsCancellationRequested)
         {
-            await WaitForConnection(_cancellationToken);
-
-            await Close();
-
-            if (_webSocket.State is WebSocketState.Open or WebSocketState.Connecting)
-                return;
-
-            if (!_cancellationToken.IsCancellationRequested)
-            {
-                await ConnectAsync(_cancellationToken);
-            }
+            await ConnectAsync(_cancellationToken);
         }
-        finally
-        {
-            _reconnectLock.Release();
-        }
+
     }
 
     public async Task DisconnectAsync(CancellationToken cancellationToken)
