@@ -50,17 +50,26 @@ internal class WebSocketHandler
             && !_manuallyDisconnected )
             .Subscribe(async _ => await ReconnectAsync());
 
-        var timer = new Timer((state) => AutoReconnectCallback(), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+        var timer = new Timer(async (state) => await AutoReconnectCallback(), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
     }
 
-    private void AutoReconnectCallback()
+    private async Task AutoReconnectCallback()
     {
         if (_webSocket.State is WebSocketState.Connecting or WebSocketState.Open or WebSocketState.None)
         {
             return;
         }
 
-        _whenStateChecked.OnNext(_webSocket.State);
+        if (_webSocket.State is WebSocketState.CloseReceived)
+        {
+            await Close();
+        }
+        else
+        {
+            _whenStateChecked.OnNext(_webSocket.State);
+        }
+
+
     }
 
     public async Task ConnectAsync(CancellationToken cancellationToken)
@@ -167,5 +176,21 @@ internal class WebSocketHandler
         {
             await Task.Delay(15, cancellationToken);
         }
-    }    
+    }
+
+    private async Task Close()
+    {
+
+        try
+        {
+            if (_webSocket.State is WebSocketState.CloseReceived)
+            {
+                await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Got CloseReceived", _cancellationToken);
+                _whenStateChanged.OnNextIfValueChanged(_webSocket.State);
+            }
+        }
+        catch (Exception)
+        {
+        }
+    }
 }
