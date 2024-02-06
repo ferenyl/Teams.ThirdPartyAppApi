@@ -30,8 +30,8 @@ public class TeamsClient : TeamsClientBase
     {
 
         IsConnectedChanged
-             .Select(IsConnected => IsConnected
-                ? Observable.Empty<Unit>()
+             .Select(IsConnected => !IsConnected
+                ? OnNotConnected()
                 : Observable.FromAsync(async () => await SendCommand(MeetingAction.QueryMeetingState)))
              .Concat()
              .Subscribe();
@@ -109,6 +109,25 @@ public class TeamsClient : TeamsClientBase
         _whenCanToggleRecordChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleRecord);
         _whenCanLeaveChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanLeave);
         _whenCanReactChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanReact);
+    }
+
+    private IObservable<Unit> OnNotConnected()
+    {
+        _whenIsMutedChanged.OnNextIfValueChanged(false);
+        _whenIsCameraOnChanged.OnNextIfValueChanged(false);
+        _whenIsHandRaisedChanged.OnNextIfValueChanged(false);
+        _whenIsInMeetingChanged.OnNextIfValueChanged(false);
+        _whenIsRecordingOnChanged.OnNextIfValueChanged(false);
+        _whenIsBackgroundBlurredChanged.OnNextIfValueChanged(false);
+        _whenCanToggleMuteChanged.OnNextIfValueChanged(false);
+        _whenCanToggleVideoChanged.OnNextIfValueChanged(false);
+        _whenCanToggleHandChanged.OnNextIfValueChanged(false);
+        _whenCanToggleBlurChanged.OnNextIfValueChanged(false);
+        _whenCanToggleRecordChanged.OnNextIfValueChanged(false);
+        _whenCanLeaveChanged.OnNextIfValueChanged(false);
+        _whenCanReactChanged.OnNextIfValueChanged(false);
+
+        return Observable.Empty<Unit>();
     }
 
     private async Task SendCommand(MeetingAction action)

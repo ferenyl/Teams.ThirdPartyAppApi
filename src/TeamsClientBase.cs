@@ -63,6 +63,7 @@ public abstract class TeamsClientBase
     {
         await _socket.ReconnectAsync();
     }
+    
     internal async Task SendCommand(string clientMessage)
     {
         await _socket.SendMessageAsync(clientMessage);
