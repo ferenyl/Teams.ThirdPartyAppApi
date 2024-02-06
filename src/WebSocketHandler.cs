@@ -19,7 +19,7 @@ internal class WebSocketHandler
     private CancellationTokenSource? _receiveCancellationTokenSource;
     private CancellationTokenSource? _connectionCancellationTokenSource;
     private readonly SemaphoreSlim _connectLock = new(1, 1);
-    private readonly SemaphoreSlim _reconnectLock = new(1, 1);
+    private readonly SemaphoreSlim _closeLock = new(1, 1);
 
     private bool _manuallyDisconnected = false;
 
@@ -47,22 +47,29 @@ internal class WebSocketHandler
         _whenStateChanged
             .CombineLatest(_whenStateChecked, (state, _) => state)
             .Where(state =>
-            _webSocket.State is WebSocketState.Aborted or WebSocketState.Closed or WebSocketState.CloseReceived
+            _webSocket.State is WebSocketState.Aborted or WebSocketState.Closed
             && autoReconnect
             && !_manuallyDisconnected)
             .Subscribe(async _ => await ReconnectAsync());
 
-        var timer = new Timer((state) => AutoReconnectCallback(), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+        var timer = new Timer(async (state) => await AutoReconnectCallback(), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
     }
 
-    private void AutoReconnectCallback()
+    private async Task AutoReconnectCallback()
     {
         if (_webSocket.State is WebSocketState.Connecting or WebSocketState.Open or WebSocketState.None)
         {
             return;
         }
 
-        _whenStateChecked.OnNext(_webSocket.State);
+        if (_webSocket.State is WebSocketState.CloseReceived)
+        {
+            await Close();
+        }
+        else
+        {
+            _whenStateChecked.OnNext(_webSocket.State);
+        }
     }
 
     public async Task ConnectAsync(CancellationToken cancellationToken)
@@ -143,8 +150,6 @@ internal class WebSocketHandler
     {
         await WaitForConnection(_cancellationToken);
 
-        await Close();
-
         if (_webSocket.State is WebSocketState.Open or WebSocketState.Connecting)
             return;
 
@@ -179,16 +184,22 @@ internal class WebSocketHandler
 
     private async Task Close()
     {
-
+         await _closeLock.WaitAsync(_cancellationToken);
         try
         {
             if (_webSocket.State is WebSocketState.CloseReceived)
             {
                 await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Got CloseReceived", _cancellationToken);
+                _whenStateChanged.OnNextIfValueChanged(_webSocket.State);
             }
         }
-        catch (Exception)
+        catch (Exception e)
         {
+            
+        }
+        finally
+        {
+            _closeLock.Release();
         }
     }
 }
