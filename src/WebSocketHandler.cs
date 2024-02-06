@@ -19,6 +19,7 @@ internal class WebSocketHandler
     private CancellationTokenSource? _receiveCancellationTokenSource;
     private CancellationTokenSource? _connectionCancellationTokenSource;
     private readonly SemaphoreSlim _connectLock = new(1, 1);
+
     private readonly SemaphoreSlim _closeLock = new(1, 1);
 
     private bool _manuallyDisconnected = false;
@@ -61,7 +62,7 @@ internal class WebSocketHandler
         {
             return;
         }
-
+      
         if (_webSocket.State is WebSocketState.CloseReceived)
         {
             await Close();
@@ -150,6 +151,8 @@ internal class WebSocketHandler
     {
         await WaitForConnection(_cancellationToken);
 
+        await Close();
+
         if (_webSocket.State is WebSocketState.Open or WebSocketState.Connecting)
             return;
 
@@ -184,7 +187,7 @@ internal class WebSocketHandler
 
     private async Task Close()
     {
-         await _closeLock.WaitAsync(_cancellationToken);
+        await _closeLock.WaitAsync(_cancellationToken);
         try
         {
             if (_webSocket.State is WebSocketState.CloseReceived)
