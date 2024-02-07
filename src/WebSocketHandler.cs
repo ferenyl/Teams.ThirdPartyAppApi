@@ -96,7 +96,7 @@ internal class WebSocketHandler
                 StartReceivingMessagesAsync(cancellationToken);
             }
         }
-        catch (Exception)
+        catch (Exception e)
         {
             //silent
         }

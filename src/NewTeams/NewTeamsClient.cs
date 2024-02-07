@@ -29,8 +29,8 @@ public class NewTeamsClient : TeamsClientBase
     private readonly BehaviorSubject<bool> _canPairChanged = new(false);
     private int RequestId { get; set; }
 
-    public NewTeamsClient(string url, string port, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
-    : base(url, port, string.Empty, autoReconnect, new ClientInformation(manufacturer, device, app, appVersion), cancellationToken)
+    public NewTeamsClient(string url, int port, string token, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
+    : base(url, port, token, autoReconnect, new ClientInformation(manufacturer, device, app, appVersion), cancellationToken)
     {
         IsConnectedChanged
              .Select(IsConnected => IsConnected ? Observable.FromAsync(async () => await QueryState()) : OnNotConnected())
@@ -41,10 +41,17 @@ public class NewTeamsClient : TeamsClientBase
             .Subscribe(OnReceived);
     }
 
-    public NewTeamsClient(string url, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
-    : this(url: url, port: string.Empty, manufacturer: manufacturer, device: device, app: app, appVersion: appVersion, autoReconnect: autoReconnect, cancellationToken: cancellationToken)
+    public NewTeamsClient(string url, string token, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
+    : this(url: url, port: 0, token, manufacturer: manufacturer, device: device, app: app, appVersion: appVersion, autoReconnect: autoReconnect, cancellationToken: cancellationToken)
     {
     }
+
+     public NewTeamsClient(string url, int port, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
+    : this(url: url, port: port, string.Empty, manufacturer: manufacturer, device: device, app: app, appVersion: appVersion, autoReconnect: autoReconnect, cancellationToken: cancellationToken)
+    {
+    }
+
+    
 
     public IObservable<string> TokenChanged => _tokenChanged;
     public IObservable<bool> IsMutedChanged => _isMutedChanged;
@@ -102,8 +109,13 @@ public class NewTeamsClient : TeamsClientBase
             return;
         }
 
+        if(message.Response == "Success"){
+            return;
+        }
+
         if (message.MeetingUpdate is null)
             return;
+        
 
         // set values
         _isMutedChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsMuted);

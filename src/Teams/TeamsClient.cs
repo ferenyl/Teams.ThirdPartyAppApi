@@ -26,7 +26,7 @@ public class TeamsClient : TeamsClientBase
     public string Manufacturer { get; set; } = "Elgato";
     public string Device { get; set; } = "Stream Deck";
 
-    public TeamsClient(string url, string port, string token = "", bool autoReconnect = false, CancellationToken cancellationToken = default) : base(url, port, token, autoReconnect, new ClientInformation(), cancellationToken)
+    public TeamsClient(string url, int port, string token = "", bool autoReconnect = false, CancellationToken cancellationToken = default) : base(url, port, token, autoReconnect, new ClientInformation(), cancellationToken)
     {
 
         IsConnectedChanged
@@ -41,7 +41,7 @@ public class TeamsClient : TeamsClientBase
 
     }
 
-    public TeamsClient(string url, string token = "", bool autoReconnect = false, CancellationToken cancellationToken = default) : this(url, string.Empty, token, autoReconnect, cancellationToken)
+    public TeamsClient(string url, string token = "", bool autoReconnect = false, CancellationToken cancellationToken = default) : this(url, 0, token, autoReconnect, cancellationToken)
     {
     }
 
