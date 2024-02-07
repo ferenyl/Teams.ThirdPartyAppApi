@@ -11,7 +11,8 @@ CancelKeyPress += (source, args) =>
     cts.Cancel();
 };
 var teamsIp = Environment.GetEnvironmentVariable("teamsip", EnvironmentVariableTarget.User) ?? "127.0.0.1";
-var teamsPort = Environment.GetEnvironmentVariable("teamsport", EnvironmentVariableTarget.User) ?? "8124";
+var portEnv = int.TryParse(Environment.GetEnvironmentVariable("teamsport", EnvironmentVariableTarget.User), out var result);
+var teamsPort =  portEnv ? result : 8124;
 var teamsToken = Environment.GetEnvironmentVariable("teamstoken", EnvironmentVariableTarget.User) ?? string.Empty;
 
 var envTeamsVersion = Environment.GetEnvironmentVariable("teamsversion", EnvironmentVariableTarget.User);
@@ -49,17 +50,16 @@ else
     }
 }
 
-
-
-
 async Task NewTeams()
 {
-    var Teams = new NewTeamsClient(teamsIp, teamsPort, "TeamsLocalApi", "TeamsLocalApi device", "TeamsLocalApi app", "1.0.0", autoReconnect: true, cts.Token) ?? throw new Exception("Could not create client");
+    var Teams = new NewTeamsClient(teamsIp, teamsPort, teamsToken, "TeamsLocalApi", "TeamsLocalApi device", "TeamsLocalApi app", "1.0.0", autoReconnect: true, cts.Token) ?? throw new Exception("Could not create client");
 
     Teams.IsConnectedChanged
         .Subscribe(connected => WriteLine(connected ? "Event: Connected" : "Event: Disconnected"));
     Teams.IsInMeetingChanged
         .Subscribe(connected => WriteLine(connected ? "Event: InMeeting" : "Event: NotInMeeting"));
+    Teams.TokenChanged
+        .Subscribe(token => WriteLine($"Event: TokenChanged: {token}"));
 
     WriteLine("Connecting...");
     await Teams.Connect();
