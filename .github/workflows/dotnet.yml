@@ -43,17 +43,6 @@ jobs:
         sed -i "s/<AssemblyVersion>.*<\/AssemblyVersion>/<AssemblyVersion>$NEW_VERSION<\/AssemblyVersion>/g" ./src/Teams.ThirdPartyAppApi.csproj
       if: startsWith(github.ref, 'refs/tags/v')
 
-    - name: Commit and push
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git fetch --all
-        git pull
-        git commit -am "Bump version to ${{ steps.bump_version.outputs.NEW_VERSION }}"
-        git tag v${{ steps.bump_version.outputs.NEW_VERSION }}
-        git push
-      if: startsWith(github.ref, 'refs/tags/v')
-
 
     - name: Pack
       run: dotnet pack ./src/Teams.ThirdPartyAppApi.csproj  --configuration Release --output ./artifacts
