@@ -96,7 +96,7 @@ internal class WebSocketHandler
                 StartReceivingMessagesAsync(cancellationToken);
             }
         }
-        catch (Exception e)
+        catch (Exception)
         {
             //silent
         }
@@ -196,7 +196,7 @@ internal class WebSocketHandler
                 _whenStateChanged.OnNextIfValueChanged(_webSocket.State);
             }
         }
-        catch (Exception e)
+        catch (Exception)
         {
             
         }

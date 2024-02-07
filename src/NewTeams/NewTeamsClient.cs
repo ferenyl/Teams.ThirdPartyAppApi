@@ -74,6 +74,25 @@ public class NewTeamsClient : TeamsClientBase
     public IObservable<bool> CanStopSharingChanged => _canStopSharingChanged;
     public IObservable<bool> CanPairChanged => _canPairChanged;
 
+    public bool IsMuted => _isMutedChanged.Value;
+    public bool IsHandRaised => _isHandRaisedChanged.Value;
+    public bool IsInMeeting => _isInMeetingChanged.Value;
+    public bool IsRecordingOn => _isRecordingOnChanged.Value;
+    public bool IsBackgroundBlurred => _isBackgroundBlurredChanged.Value;
+    public bool IsSharing => _isSharingChanged.Value;
+    public bool HasUnreadMessages => _hasUnreadMessagesChanged.Value;
+    public bool IsVideoOn => _isVideoOnChanged.Value;
+    public bool CanToggleMute => _canToggleMuteChanged.Value;
+    public bool CanToggleVideo => _canToggleVideoChanged.Value;
+    public bool CanToggleHand => _canToggleHandChanged.Value;
+    public bool CanToggleBlur => _canToggleBlurChanged.Value;
+    public bool CanLeave => _canLeaveChanged.Value;
+    public bool CanReact => _canReactChanged.Value;
+    public bool CanToggleShareTray => _canToggleShareTrayChanged.Value;
+    public bool CanToggleChat => _canToggleChatChanged.Value;
+    public bool CanStopSharing => _canStopSharingChanged.Value;
+    public bool CanPair => _canPairChanged.Value;
+
     protected override Uri BuildUri()
     {
         var urlencoder = UrlEncoder.Default;
