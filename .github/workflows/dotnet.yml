@@ -5,9 +5,11 @@ name: .NET Core CI
 
 on:
   push:
-    branches: [ develop, main ]
+    branches: [ main ]
+    tags:
+      - 'v*'
   pull_request:
-    branches: [ develop, main ]
+    branches: [ main ]
 
 jobs:
   build:
@@ -16,6 +18,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Get version
+      id: get_version
+      run: echo "NEW_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -31,23 +37,11 @@ jobs:
     - name: Test
       run: dotnet test --no-build --verbosity normal
 
-    - name: Bump version and push tag
+    - name: Set version to tag
       id: bump_version
       run: |
-        # Extract version from .csproj file
-        VERSION=$(grep -oP '(?<=<AssemblyVersion>).*?(?=</AssemblyVersion>)' ./src/Teams.ThirdPartyAppApi.csproj)
-
-        # Bump version
-        NEW_VERSION=$(echo "$VERSION" | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')
-        echo "Bumping version from $VERSION to $NEW_VERSION"
-
-        # Update version in .csproj file
-
-        sed -i "s/<AssemblyVersion>$VERSION<\/AssemblyVersion>/<AssemblyVersion>$NEW_VERSION<\/AssemblyVersion>/g" ./src/Teams.ThirdPartyAppApi.csproj
-
-        # Set output
-        echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
-      if: github.ref == 'refs/heads/main'
+        sed -i "s/<AssemblyVersion>.*<\/AssemblyVersion>/<AssemblyVersion>$NEW_VERSION<\/AssemblyVersion>/g" ./src/Teams.ThirdPartyAppApi.csproj
+      if: startsWith(github.ref, 'refs/tags/v')
 
     - name: Commit and push
       run: |
@@ -58,17 +52,17 @@ jobs:
         git commit -am "Bump version to ${{ steps.bump_version.outputs.NEW_VERSION }}"
         git tag v${{ steps.bump_version.outputs.NEW_VERSION }}
         git push
-      if: github.ref == 'refs/heads/main'
+      if: startsWith(github.ref, 'refs/tags/v')
 
 
     - name: Pack
       run: dotnet pack ./src/Teams.ThirdPartyAppApi.csproj  --configuration Release --output ./artifacts
-      if: github.ref == 'refs/heads/main'
+      if: startsWith(github.ref, 'refs/tags/v')
 
     - name: Get NuGet package name
       id: pkg
       run: echo "PACKAGENAME=$(basename $(find ./artifacts -name '*.nupkg')) >> $GITHUB_OUTPUT"
-      if: github.ref == 'refs/heads/main'
+      if: startsWith(github.ref, 'refs/tags/v')
 
     - name: Generate release notes
       id: release_notes
@@ -78,7 +72,7 @@ jobs:
         
         # Set output
         echo  "NOTES=$RELEASE_NOTES >> $GITHUB_OUTPUT"
-      if: github.ref == 'refs/heads/main'
+      if: startsWith(github.ref, 'refs/tags/v')
 
     - name: create release
       uses: ncipollo/release-action@v1.13.0
@@ -91,8 +85,8 @@ jobs:
         draft: false
         name: Release v${{ steps.bump_version.outputs.NEW_VERSION }}
         generateReleaseNotes: true
-      if: github.ref == 'refs/heads/main'
+      if: startsWith(github.ref, 'refs/tags/v')
 
     - name: Push
       run: dotnet nuget push "./artifacts/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
-      if: github.ref == 'refs/heads/main'
+      if: startsWith(github.ref, 'refs/tags/v')

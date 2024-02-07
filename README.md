@@ -20,13 +20,32 @@ new TeamsClient("127.0.01", "token from app", true, cts)
 
 
 ### NewTeamsClient
-This client is used to interact with the new Teams app. It is used to send and receive messages from the Teams app. It only works localy until the Teams allows connections from another connection than localhost.
+This client is used to interact with the new Teams app. It is used to send and receive messages from the Teams app. New Teams only accepts connetcion from localhost so this must run on the same computer as teams. But you can use a socket proxy to use it remotly
+
+This client do not require a initial token. But teams will return a token for future use. To save that token you must subscribe to NewTeamsClient.TokenChanged
+
+``` c#
+//NewTeamsClient(string url, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
+var client = new NewTeamsClient("127.0.0.1", "companyName", "company device", "teams integgrator", "1.0", true, cts)
+client.
+    TokenChanged
+    .Subscribe(token => SaveToken)
+```
 
 #### usage
 ``` csharp
 //NewTeamsClient(string url, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
 new NewTeamsClient("127.0.0.1", "companyName", "company device", "teams integgrator", "1.0", true, cts)
 ```
+
+## Activate third party app api
+### old teams
+Go to settings -> privacy and scroll down to third party api and manage. Then activate it and copy the token.
+
+### New teams 
+go to setttings -> privacy scroll to third party api and manage. Activate and go to a meeting. When in a meeting, send a command to teams. A permission popup will appear, press approve.
+
+
 
 ## Reactive
 This library uses Reactive dotnet https://github.com/dotnet/reactive.

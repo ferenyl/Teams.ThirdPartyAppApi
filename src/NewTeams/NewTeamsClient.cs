@@ -29,8 +29,8 @@ public class NewTeamsClient : TeamsClientBase
     private readonly BehaviorSubject<bool> _canPairChanged = new(false);
     private int RequestId { get; set; }
 
-    public NewTeamsClient(string url, string port, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
-    : base(url, port, string.Empty, autoReconnect, new ClientInformation(manufacturer, device, app, appVersion), cancellationToken)
+    public NewTeamsClient(string url, int port, string token, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
+    : base(url, port, token, autoReconnect, new ClientInformation(manufacturer, device, app, appVersion), cancellationToken)
     {
         IsConnectedChanged
              .Select(IsConnected => IsConnected ? Observable.FromAsync(async () => await QueryState()) : OnNotConnected())
@@ -41,10 +41,17 @@ public class NewTeamsClient : TeamsClientBase
             .Subscribe(OnReceived);
     }
 
-    public NewTeamsClient(string url, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
-    : this(url: url, port: string.Empty, manufacturer: manufacturer, device: device, app: app, appVersion: appVersion, autoReconnect: autoReconnect, cancellationToken: cancellationToken)
+    public NewTeamsClient(string url, string token, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
+    : this(url: url, port: 0, token, manufacturer: manufacturer, device: device, app: app, appVersion: appVersion, autoReconnect: autoReconnect, cancellationToken: cancellationToken)
     {
     }
+
+     public NewTeamsClient(string url, int port, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
+    : this(url: url, port: port, string.Empty, manufacturer: manufacturer, device: device, app: app, appVersion: appVersion, autoReconnect: autoReconnect, cancellationToken: cancellationToken)
+    {
+    }
+
+    
 
     public IObservable<string> TokenChanged => _tokenChanged;
     public IObservable<bool> IsMutedChanged => _isMutedChanged;
@@ -66,6 +73,25 @@ public class NewTeamsClient : TeamsClientBase
     public IObservable<bool> CanToggleChatChanged => _canToggleChatChanged;
     public IObservable<bool> CanStopSharingChanged => _canStopSharingChanged;
     public IObservable<bool> CanPairChanged => _canPairChanged;
+
+    public bool IsMuted => _isMutedChanged.Value;
+    public bool IsHandRaised => _isHandRaisedChanged.Value;
+    public bool IsInMeeting => _isInMeetingChanged.Value;
+    public bool IsRecordingOn => _isRecordingOnChanged.Value;
+    public bool IsBackgroundBlurred => _isBackgroundBlurredChanged.Value;
+    public bool IsSharing => _isSharingChanged.Value;
+    public bool HasUnreadMessages => _hasUnreadMessagesChanged.Value;
+    public bool IsVideoOn => _isVideoOnChanged.Value;
+    public bool CanToggleMute => _canToggleMuteChanged.Value;
+    public bool CanToggleVideo => _canToggleVideoChanged.Value;
+    public bool CanToggleHand => _canToggleHandChanged.Value;
+    public bool CanToggleBlur => _canToggleBlurChanged.Value;
+    public bool CanLeave => _canLeaveChanged.Value;
+    public bool CanReact => _canReactChanged.Value;
+    public bool CanToggleShareTray => _canToggleShareTrayChanged.Value;
+    public bool CanToggleChat => _canToggleChatChanged.Value;
+    public bool CanStopSharing => _canStopSharingChanged.Value;
+    public bool CanPair => _canPairChanged.Value;
 
     protected override Uri BuildUri()
     {
@@ -102,8 +128,13 @@ public class NewTeamsClient : TeamsClientBase
             return;
         }
 
+        if(message.Response == "Success"){
+            return;
+        }
+
         if (message.MeetingUpdate is null)
             return;
+        
 
         // set values
         _isMutedChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsMuted);

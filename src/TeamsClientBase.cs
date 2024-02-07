@@ -14,9 +14,9 @@ public abstract class TeamsClientBase
     
     private Uri Uri { get; set; }
     private readonly WebSocketHandler _socket;
-    protected string Token { get; set; } = string.Empty;
+    public string Token { get; protected set; } = string.Empty;
     protected string Url { get; }
-    protected string Port { get; }
+    protected int Port { get; }
     protected readonly ClientInformation _clientInformation;
 
     protected readonly JsonSerializerOptions _serializerOptions = new()
@@ -24,11 +24,11 @@ public abstract class TeamsClientBase
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    protected TeamsClientBase(string url,string port, string token, bool autoReconnect, ClientInformation clientInformation, CancellationToken cancellationToken)
+    protected TeamsClientBase(string url, int port, string token, bool autoReconnect, ClientInformation clientInformation, CancellationToken cancellationToken)
     {
         Token = token;
         Url = url;
-        Port = string.IsNullOrEmpty(port) ? "8124" : port;
+        Port = port == 0 ? 8124 : port;
         _autoReconnect = autoReconnect;
         _cancellationToken = cancellationToken;
         _clientInformation = clientInformation;
