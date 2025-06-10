@@ -5,79 +5,77 @@ name: .NET Core CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     tags:
-      - 'v*'
+      - "v*"
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 8.0.x
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
 
-    - name: Install dependencies
-      run: dotnet restore
+      - name: Install dependencies
+        run: dotnet restore
 
-    - name: Build
-      run: dotnet build --no-restore
+      - name: Build
+        run: dotnet build --no-restore
 
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+      - name: Test
+        run: dotnet test --no-build --verbosity normal
 
-    - name: Get version
-      id: get_version
-      run: echo "NEW_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      - name: Get version
+        id: get_version
+        run: echo "NEW_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-    - name: Set version to tag
-      id: bump_version
-      env:
-        NEW_VERSION: ${{ steps.get_version.outputs.NEW_VERSION }}
-      run: |
-        sed -i "s/<AssemblyVersion>.*<\/AssemblyVersion>/<AssemblyVersion>$NEW_VERSION<\/AssemblyVersion>/g" ./src/Teams.ThirdPartyAppApi.csproj
-      if: startsWith(github.ref, 'refs/tags/v')
+      - name: Set version to tag
+        id: bump_version
+        env:
+          NEW_VERSION: ${{ steps.get_version.outputs.NEW_VERSION }}
+        run: |
+          sed -i "s/<AssemblyVersion>.*<\/AssemblyVersion>/<AssemblyVersion>$NEW_VERSION<\/AssemblyVersion>/g" ./src/Teams.ThirdPartyAppApi.csproj
+        if: startsWith(github.ref, 'refs/tags/v')
 
+      - name: Pack
+        run: dotnet pack ./src/Teams.ThirdPartyAppApi.csproj  --configuration Release --output ./artifacts
+        if: startsWith(github.ref, 'refs/tags/v')
 
-    - name: Pack
-      run: dotnet pack ./src/Teams.ThirdPartyAppApi.csproj  --configuration Release --output ./artifacts
-      if: startsWith(github.ref, 'refs/tags/v')
+      - name: Get NuGet package name
+        id: pkg
+        run: echo "PACKAGENAME=$(basename $(find ./artifacts -name '*.nupkg')) >> $GITHUB_OUTPUT"
+        if: startsWith(github.ref, 'refs/tags/v')
 
-    - name: Get NuGet package name
-      id: pkg
-      run: echo "PACKAGENAME=$(basename $(find ./artifacts -name '*.nupkg')) >> $GITHUB_OUTPUT"
-      if: startsWith(github.ref, 'refs/tags/v')
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          # Get commit messages since last tag
+          RELEASE_NOTES="$(git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"- %s")"
 
-    - name: Generate release notes
-      id: release_notes
-      run: |
-        # Get commit messages since last tag
-        RELEASE_NOTES="$(git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"- %s")"
-        
-        # Set output
-        echo  "NOTES=$RELEASE_NOTES >> $GITHUB_OUTPUT"
-      if: startsWith(github.ref, 'refs/tags/v')
+          # Set output
+          echo  "NOTES=$RELEASE_NOTES >> $GITHUB_OUTPUT"
+        if: startsWith(github.ref, 'refs/tags/v')
 
-    - name: create release
-      uses: ncipollo/release-action@v1.13.0
-      with:
-        artifacts: "./artifacts/*.nupkg, ./artifacts/*.snupkg"
-        body:  ${{ steps.release_notes.outputs.NOTES }}
-        token: ${{ secrets.GITHUB_TOKEN }}
-        tag: v${{ steps.get_version.outputs.NEW_VERSION }}
-        prerelease: false
-        draft: false
-        name: Release v${{ steps.get_version.outputs.NEW_VERSION }}
-        generateReleaseNotes: true
-      if: startsWith(github.ref, 'refs/tags/v')
+      - name: create release
+        uses: ncipollo/release-action@v1.13.0
+        with:
+          artifacts: "./artifacts/*.nupkg, ./artifacts/*.snupkg"
+          body: ${{ steps.release_notes.outputs.NOTES }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: v${{ steps.get_version.outputs.NEW_VERSION }}
+          prerelease: false
+          draft: false
+          name: Release v${{ steps.get_version.outputs.NEW_VERSION }}
+          generateReleaseNotes: true
+        if: startsWith(github.ref, 'refs/tags/v')
 
-    - name: Push
-      run: dotnet nuget push "./artifacts/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
-      if: startsWith(github.ref, 'refs/tags/v')
+      - name: Push
+        run: dotnet nuget push "./artifacts/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+        if: startsWith(github.ref, 'refs/tags/v')
