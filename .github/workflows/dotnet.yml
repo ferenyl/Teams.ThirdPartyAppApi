@@ -54,7 +54,12 @@ jobs:
         env:
           NEW_VERSION: ${{ steps.get_version.outputs.NEW_VERSION }}
         run: |
-          sed -i "s/<AssemblyVersion>.*<\/AssemblyVersion>/<AssemblyVersion>$NEW_VERSION<\/AssemblyVersion>/g" ./src/Teams.ThirdPartyAppApi.csproj
+          # Sätt Version till hela taggen
+          sed -i "s/<Version>.*<\/Version>/<Version>$NEW_VERSION<\/Version>/g" ./src/Teams.ThirdPartyAppApi.csproj
+          # Sätt AssemblyVersion och FileVersion till stabil version (utan prerelease)
+          STABLE_VERSION=$(echo "$NEW_VERSION" | cut -d'-' -f1)
+          sed -i "s/<AssemblyVersion>.*<\/AssemblyVersion>/<AssemblyVersion>$STABLE_VERSION.0<\/AssemblyVersion>/g" ./src/Teams.ThirdPartyAppApi.csproj
+          sed -i "s/<FileVersion>.*<\/FileVersion>/<FileVersion>$STABLE_VERSION.0<\/FileVersion>/g" ./src/Teams.ThirdPartyAppApi.csproj
         if: startsWith(github.ref, 'refs/tags/v')
 
       - name: Pack
