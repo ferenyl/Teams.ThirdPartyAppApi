@@ -32,25 +32,21 @@ jobs:
       - name: Test
         run: dotnet test --no-build --verbosity normal
 
-      - name: Detect branch and set prerelease variables
+      - name: Detect prerelease from tag
         id: branch_check
         run: |
-          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
           IS_PRERELEASE="false"
-          if [[ "$BRANCH_NAME" != "main" && "$GITHUB_REF" != refs/tags/v* ]]; then
+          if [[ "$TAG_VERSION" == *-* ]]; then
             IS_PRERELEASE="true"
           fi
           echo "IS_PRERELEASE=$IS_PRERELEASE" >> $GITHUB_OUTPUT
-          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_OUTPUT
 
       - name: Get version
         id: get_version
         run: |
-          if [[ "${{ steps.branch_check.outputs.IS_PRERELEASE }}" == "true" ]]; then
-            VERSION="0.8.19-${{ steps.branch_check.outputs.BRANCH_NAME }}-${GITHUB_SHA:0:7}"
-          else
-            VERSION="${GITHUB_REF#refs/tags/v}"
-          fi
+          VERSION="${{ steps.branch_check.outputs.TAG_VERSION }}"
           echo "NEW_VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Set version to tag or prerelease
@@ -59,23 +55,23 @@ jobs:
           NEW_VERSION: ${{ steps.get_version.outputs.NEW_VERSION }}
         run: |
           sed -i "s/<AssemblyVersion>.*<\/AssemblyVersion>/<AssemblyVersion>$NEW_VERSION<\/AssemblyVersion>/g" ./src/Teams.ThirdPartyAppApi.csproj
-        if: always()
+        if: startsWith(github.ref, 'refs/tags/v')
 
       - name: Pack
         run: dotnet pack ./src/Teams.ThirdPartyAppApi.csproj  --configuration Release --output ./artifacts
-        if: always()
+        if: startsWith(github.ref, 'refs/tags/v')
 
       - name: Get NuGet package name
         id: pkg
         run: echo "PACKAGENAME=$(basename $(find ./artifacts -name '*.nupkg'))" >> $GITHUB_OUTPUT
-        if: always()
+        if: startsWith(github.ref, 'refs/tags/v')
 
       - name: Generate release notes
         id: release_notes
         run: |
           RELEASE_NOTES="$(git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"- %s")"
           echo  "NOTES=$RELEASE_NOTES" >> $GITHUB_OUTPUT
-        if: always()
+        if: startsWith(github.ref, 'refs/tags/v')
 
       - name: create release
         uses: ncipollo/release-action@v1.13.0
@@ -88,8 +84,8 @@ jobs:
           draft: false
           name: Release v${{ steps.get_version.outputs.NEW_VERSION }}
           generateReleaseNotes: true
-        if: always()
+        if: startsWith(github.ref, 'refs/tags/v')
 
       - name: Push
         run: dotnet nuget push "./artifacts/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
-        if: always()
+        if: startsWith(github.ref, 'refs/tags/v')
