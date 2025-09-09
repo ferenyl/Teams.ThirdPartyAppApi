@@ -105,7 +105,7 @@ internal class WebSocketHandler : IDisposable
             {
                 _manuallyDisconnected = false;
 
-                _connectionCancellationTokenSource = new CancellationTokenSource(5000);
+                _connectionCancellationTokenSource = new CancellationTokenSource();
                 var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _connectionCancellationTokenSource.Token).Token;
                 await _webSocket.ConnectAsync(_uri, combinedToken);
                 StartReceivingMessagesAsync(combinedToken);
@@ -145,6 +145,12 @@ internal class WebSocketHandler : IDisposable
             try
             {
                 result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
+            }
+            catch (TaskCanceledException)
+            {
+                // Mottagning avbruten, troligen pga stängning eller nätverksproblem
+                Console.WriteLine("ReceiveMessagesAsync cancelled.");
+                break;
             }
             catch (Exception ex)
             {
