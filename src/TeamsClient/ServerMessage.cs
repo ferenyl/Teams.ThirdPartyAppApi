@@ -1,4 +1,4 @@
-﻿namespace Teams.ThirdPartyAppApi.NewTeams;
+﻿namespace Teams.ThirdPartyAppApi.TeamsClient;
 
 internal class ServerMessage
 {
