@@ -126,7 +126,6 @@ public class TeamsClient : TeamsClientBase, IDisposable
 
         if (!string.IsNullOrEmpty(message.ErrorMsg))
         {
-            // Logga felmeddelandet
             Console.Error.WriteLine($"Server error: {message.ErrorMsg}");
             if (message.ErrorMsg.EndsWith("no active call"))
                 return;
