@@ -179,7 +179,7 @@ internal class WebSocketHandler : IDisposable
 
     public async Task ReconnectAsync()
     {
-        // Token måste skickas in, använd en ny om ingen finns
+        // A token must be provided; use a new one if none exists
         var token = _connectionCancellationTokenSource?.Token ?? CancellationToken.None;
         await WaitForConnection(token);
 
