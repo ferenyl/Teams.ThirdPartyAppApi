@@ -224,10 +224,10 @@ public class TeamsClient : TeamsClientBase, IDisposable
     public override void Dispose()
     {
         if (_disposed) return;
-        base.Dispose(); // Run base class's Dispose first!
         _connectedSubscription?.Dispose();
         _receivedSubscription?.Dispose();
         _disposed = true;
+        base.Dispose(); // Run base class's Dispose first!
         GC.SuppressFinalize(this);
     }
 }
