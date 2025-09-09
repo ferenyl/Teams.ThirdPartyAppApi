@@ -114,7 +114,7 @@ public class TeamsClient : TeamsClientBase, IDisposable
         }
         catch (Exception ex)
         {
-            // Logga felet, t.ex. till Console eller loggningssystem
+            // Log the error, e.g., to Console or logging system
             Console.Error.WriteLine($"SendCommand error: {ex}");
         }
     }
