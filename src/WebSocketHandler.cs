@@ -148,7 +148,7 @@ internal class WebSocketHandler : IDisposable
             }
             catch (TaskCanceledException)
             {
-                // Mottagning avbruten, troligen pga stängning eller nätverksproblem
+                // Reception cancelled, likely due to closure or network problems
                 Console.WriteLine("ReceiveMessagesAsync cancelled.");
                 break;
             }
