@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Teams.ThirdPartyAppApi.NewTeams;
+namespace Teams.ThirdPartyAppApi.TeamsClient;
 
 internal class ClientMessage(string action, string? parameters)
 {

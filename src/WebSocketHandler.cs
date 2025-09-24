@@ -7,15 +7,14 @@ using Teams.ThirdPartyAppApi.Adapters;
 
 [assembly: InternalsVisibleTo("Teams.ThirdPartyAppApi.Tests")]
 namespace Teams.ThirdPartyAppApi;
-internal class WebSocketHandler
+internal class WebSocketHandler : IDisposable
 {
     private readonly IClientWebSocket _webSocket;
     private readonly BehaviorSubject<WebSocketState> _whenStateChanged;
     private readonly Subject<WebSocketState> _whenStateChecked = new();
-    private readonly Subject<string> _messageSubject = new Subject<string>();
+    private readonly Subject<string> _messageSubject = new();
     internal readonly Uri _uri;
     private readonly bool _autoReconnect;
-    internal CancellationToken _cancellationToken;
     private CancellationTokenSource? _receiveCancellationTokenSource;
     private CancellationTokenSource? _connectionCancellationTokenSource;
     private readonly SemaphoreSlim _connectLock = new(1, 1);
@@ -23,6 +22,8 @@ internal class WebSocketHandler
     private readonly SemaphoreSlim _closeLock = new(1, 1);
 
     private bool _manuallyDisconnected = false;
+    private readonly Timer _reconnectTimer;
+    private bool _disposed = false;
 
     public IObservable<WebSocketState> ConnectionStatus => _whenStateChanged.AsObservable();
     public IObservable<string> ReceivedMessages => _messageSubject.AsObservable();
@@ -48,29 +49,45 @@ internal class WebSocketHandler
         _whenStateChanged
             .CombineLatest(_whenStateChecked, (state, _) => state)
             .Where(state =>
-            _webSocket.State is WebSocketState.Aborted or WebSocketState.Closed
-            && autoReconnect
-            && !_manuallyDisconnected)
-            .Subscribe(async _ => await ReconnectAsync());
+                _webSocket.State is WebSocketState.Aborted or WebSocketState.Closed
+                && autoReconnect
+                && !_manuallyDisconnected)
+            .Subscribe(state => _ = ReconnectAsyncSafe());
 
-        var timer = new Timer(async (state) => await AutoReconnectCallback(), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+        _reconnectTimer = new Timer(ReconnectTimerCallback, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
     }
 
-    private async Task AutoReconnectCallback()
+    private void ReconnectTimerCallback(object? state)
     {
-        if (_webSocket.State is WebSocketState.Connecting or WebSocketState.Open or WebSocketState.None)
-        {
-            return;
-        }
-      
-        if (_webSocket.State is WebSocketState.CloseReceived)
-        {
-            await Close();
-        }
-        else
-        {
-            _whenStateChecked.OnNext(_webSocket.State);
-        }
+        if (_disposed) return;
+        _ = AutoReconnectCallbackSafe();
+    }
+
+    private async Task AutoReconnectCallbackSafe()
+    {
+        try { await AutoReconnectCallback(); }
+        catch (Exception ex) { Console.Error.WriteLine($"AutoReconnectCallback error: {ex}"); }
+    }
+
+    private async Task ReconnectAsyncSafe()
+    {
+        try { await ReconnectAsync(); }
+        catch (Exception ex) { Console.Error.WriteLine($"ReconnectAsync error: {ex}"); }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _reconnectTimer?.Dispose();
+        _receiveCancellationTokenSource?.Cancel();
+        _connectionCancellationTokenSource?.Cancel();
+        _connectLock?.Dispose();
+        _closeLock?.Dispose();
+        _whenStateChanged?.Dispose();
+        _whenStateChecked?.Dispose();
+        _messageSubject?.Dispose();
+        _webSocket?.Dispose();
     }
 
     public async Task ConnectAsync(CancellationToken cancellationToken)
@@ -86,19 +103,17 @@ internal class WebSocketHandler
 
             if (_webSocket.State is WebSocketState.None)
             {
-
-                _cancellationToken = cancellationToken;
                 _manuallyDisconnected = false;
 
-                _connectionCancellationTokenSource = new CancellationTokenSource(5000);
+                _connectionCancellationTokenSource = new CancellationTokenSource();
                 var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _connectionCancellationTokenSource.Token).Token;
                 await _webSocket.ConnectAsync(_uri, combinedToken);
-                StartReceivingMessagesAsync(cancellationToken);
+                StartReceivingMessagesAsync(combinedToken);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            //silent
+            Console.Error.WriteLine($"ConnectAsync error: {ex}");
         }
         finally
         {
@@ -122,12 +137,26 @@ internal class WebSocketHandler
 
     private async Task ReceiveMessagesAsync(CancellationToken cancellationToken)
     {
-        await WaitForConnection(_cancellationToken);
+        await WaitForConnection(cancellationToken);
         var buffer = new byte[1024 * 4];
         while (!cancellationToken.IsCancellationRequested && _webSocket.State == WebSocketState.Open)
         {
-            var result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
-
+            WebSocketReceiveResult? result;
+            try
+            {
+                result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
+            }
+            catch (TaskCanceledException)
+            {
+                // Reception cancelled, likely due to closure or network problems
+                Console.WriteLine("ReceiveMessagesAsync cancelled.");
+                break;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"ReceiveMessagesAsync error: {ex}");
+                break;
+            }
             if (result is null)
                 continue;
 
@@ -136,31 +165,39 @@ internal class WebSocketHandler
         }
     }
 
-    public async Task SendMessageAsync(string message)
+    public async Task SendMessageAsync(string message, CancellationToken cancellationToken)
     {
-        await WaitForConnection(_cancellationToken);
+        await WaitForConnection(cancellationToken);
 
         if (_webSocket.State != WebSocketState.Open)
             return;
 
         var buffer = Encoding.UTF8.GetBytes(message);
-        await _webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, _cancellationToken);
+        try
+        {
+            await _webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"SendMessageAsync error: {ex}");
+        }
     }
 
     public async Task ReconnectAsync()
     {
-        await WaitForConnection(_cancellationToken);
+        // A token must be provided; use a new one if none exists
+        var token = _connectionCancellationTokenSource?.Token ?? CancellationToken.None;
+        await WaitForConnection(token);
 
-        await Close();
+        await Close(token);
 
         if (_webSocket.State is WebSocketState.Open or WebSocketState.Connecting)
             return;
 
-        if (!_cancellationToken.IsCancellationRequested)
+        if (!token.IsCancellationRequested)
         {
-            await ConnectAsync(_cancellationToken);
+            await ConnectAsync(token);
         }
-
     }
 
     public async Task DisconnectAsync(CancellationToken cancellationToken)
@@ -168,10 +205,11 @@ internal class WebSocketHandler
         _manuallyDisconnected = true;
 
         try { await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", cancellationToken); }
-        catch { }
+        catch (Exception ex) { Console.Error.WriteLine($"DisconnectAsync error: {ex}"); }
 
         StopReceivingMessages();
         _whenStateChanged.OnNextIfValueChanged(_webSocket.State);
+        _reconnectTimer?.Dispose();
     }
 
     private async Task WaitForConnection(CancellationToken cancellationToken)
@@ -185,24 +223,42 @@ internal class WebSocketHandler
         }
     }
 
-    private async Task Close()
+    private async Task Close(CancellationToken cancellationToken)
     {
-        await _closeLock.WaitAsync(_cancellationToken);
+        await _closeLock.WaitAsync(cancellationToken);
         try
         {
             if (_webSocket.State is WebSocketState.CloseReceived)
             {
-                await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Got CloseReceived", _cancellationToken);
+                await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Got CloseReceived", cancellationToken);
                 _whenStateChanged.OnNextIfValueChanged(_webSocket.State);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            
+            Console.Error.WriteLine($"Close error: {ex}");
         }
         finally
         {
             _closeLock.Release();
+        }
+    }
+
+    private async Task AutoReconnectCallback()
+    {
+        if (_webSocket.State is WebSocketState.Connecting or WebSocketState.Open or WebSocketState.None)
+        {
+            return;
+        }
+        
+        if (_webSocket.State is WebSocketState.CloseReceived)
+        {
+            var token = _connectionCancellationTokenSource?.Token ?? CancellationToken.None;
+            await Close(token);
+        }
+        else
+        {
+            _whenStateChecked.OnNext(_webSocket.State);
         }
     }
 }

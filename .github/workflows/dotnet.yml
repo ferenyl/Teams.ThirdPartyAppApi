@@ -5,11 +5,11 @@ name: .NET Core CI
 
 on:
   push:
-    branches: [main]
+    branches: ["*"]
     tags:
       - "v*"
   pull_request:
-    branches: [main]
+    branches: ["main"]
 
 jobs:
   build:
@@ -32,16 +32,34 @@ jobs:
       - name: Test
         run: dotnet test --no-build --verbosity normal
 
+      - name: Detect prerelease from tag
+        id: branch_check
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          IS_PRERELEASE="false"
+          if [[ "$TAG_VERSION" == *-* ]]; then
+            IS_PRERELEASE="true"
+          fi
+          echo "IS_PRERELEASE=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "TAG_VERSION=$TAG_VERSION" >> $GITHUB_OUTPUT
+
       - name: Get version
         id: get_version
-        run: echo "NEW_VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          VERSION="${{ steps.branch_check.outputs.TAG_VERSION }}"
+          echo "NEW_VERSION=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Set version to tag
+      - name: Set version to tag or prerelease
         id: bump_version
         env:
           NEW_VERSION: ${{ steps.get_version.outputs.NEW_VERSION }}
         run: |
-          sed -i "s/<AssemblyVersion>.*<\/AssemblyVersion>/<AssemblyVersion>$NEW_VERSION<\/AssemblyVersion>/g" ./src/Teams.ThirdPartyAppApi.csproj
+          # Sätt Version till hela taggen
+          sed -i "s/<Version>.*<\/Version>/<Version>$NEW_VERSION<\/Version>/g" ./src/Teams.ThirdPartyAppApi.csproj
+          # Sätt AssemblyVersion och FileVersion till stabil version (utan prerelease)
+          STABLE_VERSION=$(echo "$NEW_VERSION" | cut -d'-' -f1)
+          sed -i "s/<AssemblyVersion>.*<\/AssemblyVersion>/<AssemblyVersion>$STABLE_VERSION.0<\/AssemblyVersion>/g" ./src/Teams.ThirdPartyAppApi.csproj
+          sed -i "s/<FileVersion>.*<\/FileVersion>/<FileVersion>$STABLE_VERSION.0<\/FileVersion>/g" ./src/Teams.ThirdPartyAppApi.csproj
         if: startsWith(github.ref, 'refs/tags/v')
 
       - name: Pack
@@ -50,17 +68,14 @@ jobs:
 
       - name: Get NuGet package name
         id: pkg
-        run: echo "PACKAGENAME=$(basename $(find ./artifacts -name '*.nupkg')) >> $GITHUB_OUTPUT"
+        run: echo "PACKAGENAME=$(basename $(find ./artifacts -name '*.nupkg'))" >> $GITHUB_OUTPUT
         if: startsWith(github.ref, 'refs/tags/v')
 
       - name: Generate release notes
         id: release_notes
         run: |
-          # Get commit messages since last tag
           RELEASE_NOTES="$(git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"- %s")"
-
-          # Set output
-          echo  "NOTES=$RELEASE_NOTES >> $GITHUB_OUTPUT"
+          echo  "NOTES=$RELEASE_NOTES" >> $GITHUB_OUTPUT
         if: startsWith(github.ref, 'refs/tags/v')
 
       - name: create release
@@ -70,7 +85,7 @@ jobs:
           body: ${{ steps.release_notes.outputs.NOTES }}
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: v${{ steps.get_version.outputs.NEW_VERSION }}
-          prerelease: false
+          prerelease: ${{ steps.branch_check.outputs.IS_PRERELEASE }}
           draft: false
           name: Release v${{ steps.get_version.outputs.NEW_VERSION }}
           generateReleaseNotes: true

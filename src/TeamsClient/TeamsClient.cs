@@ -4,9 +4,9 @@ using System.Reactive.Subjects;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
-namespace Teams.ThirdPartyAppApi.NewTeams;
+namespace Teams.ThirdPartyAppApi.TeamsClient;
 
-public class NewTeamsClient : TeamsClientBase
+public class TeamsClient : TeamsClientBase, IDisposable
 {
     private readonly Subject<string> _tokenChanged = new();
     private readonly BehaviorSubject<bool> _isMutedChanged = new(false);
@@ -27,31 +27,34 @@ public class NewTeamsClient : TeamsClientBase
     private readonly BehaviorSubject<bool> _canToggleChatChanged = new(false);
     private readonly BehaviorSubject<bool> _canStopSharingChanged = new(false);
     private readonly BehaviorSubject<bool> _canPairChanged = new(false);
-    private int RequestId { get; set; }
+    private readonly IDisposable? _connectedSubscription;
+    private readonly IDisposable? _receivedSubscription;
+    private bool _disposed;
+    private int _requestId;
 
-    public NewTeamsClient(string url, int port, string token, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
+    public TeamsClient(string url, int port, string token, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
     : base(url, port, token, autoReconnect, new ClientInformation(manufacturer, device, app, appVersion), cancellationToken)
     {
-        IsConnectedChanged
+        _connectedSubscription = IsConnectedChanged
              .Select(IsConnected => IsConnected ? Observable.FromAsync(async () => await QueryState()) : OnNotConnected())
              .Concat()
              .Subscribe();
 
-        ReceivedMessages
+        _receivedSubscription = ReceivedMessages
             .Subscribe(OnReceived);
     }
 
-    public NewTeamsClient(string url, string token, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
+    public TeamsClient(string url, string token, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
     : this(url: url, port: 0, token, manufacturer: manufacturer, device: device, app: app, appVersion: appVersion, autoReconnect: autoReconnect, cancellationToken: cancellationToken)
     {
     }
 
-     public NewTeamsClient(string url, int port, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
-    : this(url: url, port: port, string.Empty, manufacturer: manufacturer, device: device, app: app, appVersion: appVersion, autoReconnect: autoReconnect, cancellationToken: cancellationToken)
+    public TeamsClient(string url, int port, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
+   : this(url: url, port: port, string.Empty, manufacturer: manufacturer, device: device, app: app, appVersion: appVersion, autoReconnect: autoReconnect, cancellationToken: cancellationToken)
     {
     }
 
-    
+
 
     public IObservable<string> TokenChanged => _tokenChanged;
     public IObservable<bool> IsMutedChanged => _isMutedChanged;
@@ -103,11 +106,17 @@ public class NewTeamsClient : TeamsClientBase
 
     private async Task SendCommand(ClientMessage clientMessage)
     {
-        clientMessage.RequestId = ++RequestId;
-
-        var message = JsonSerializer.Serialize(clientMessage, _serializerOptions);
-
-        await SendCommand(message);
+        try
+        {
+            clientMessage.RequestId = Interlocked.Increment(ref _requestId);
+            var message = JsonSerializer.Serialize(clientMessage, _serializerOptions);
+            await SendCommand(message);
+        }
+        catch (Exception ex)
+        {
+            // Log the error, e.g., to Console or logging system
+            Console.Error.WriteLine($"SendCommand error: {ex}");
+        }
     }
 
     protected void OnReceived(string json)
@@ -117,6 +126,7 @@ public class NewTeamsClient : TeamsClientBase
 
         if (!string.IsNullOrEmpty(message.ErrorMsg))
         {
+            Console.Error.WriteLine($"Server error: {message.ErrorMsg}");
             if (message.ErrorMsg.EndsWith("no active call"))
                 return;
         }
@@ -128,13 +138,14 @@ public class NewTeamsClient : TeamsClientBase
             return;
         }
 
-        if(message.Response == "Success"){
+        if (message.Response == "Success")
+        {
             return;
         }
 
         if (message.MeetingUpdate is null)
             return;
-        
+
 
         // set values
         _isMutedChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsMuted);
@@ -183,34 +194,20 @@ public class NewTeamsClient : TeamsClientBase
         return Observable.Empty<Unit>();
     }
 
-    public async Task ToggleMute() =>
-        await SendCommand(ClientMessage.ToggleMute);
-    public async Task ToggleVideo() =>
-        await SendCommand(ClientMessage.ToggleVideo);
-    public async Task ToggleHand() =>
-        await SendCommand(ClientMessage.ToggleHand);
-    public async Task ToggleBackgroundBlur() =>
-        await SendCommand(ClientMessage.ToggleBackgroundBlur);
-    public async Task LeaveCall() =>
-        await SendCommand(ClientMessage.LeaveCall);
-    public async Task StopSharing() =>
-        await SendCommand(ClientMessage.StopSharing);
-    public async Task QueryState() =>
-        await SendCommand(ClientMessage.QueryState);
-    public async Task SendReactionApplause() =>
-        await SendCommand(ClientMessage.SendReactionApplause);
-    public async Task SendReactionLaugh() =>
-        await SendCommand(ClientMessage.SendReactionLaugh);
-    public async Task SendReactionLike() =>
-        await SendCommand(ClientMessage.SendReactionLike);
-    public async Task SendReactionLove() =>
-        await SendCommand(ClientMessage.SendReactionLove);
-    public async Task SendReactionWow() =>
-        await SendCommand(ClientMessage.SendReactionWow);
-    public async Task ToggleUiChat() =>
-        await SendCommand(ClientMessage.ToggleUiChat);
-    public async Task ToggleUiShareTray() =>
-        await SendCommand(ClientMessage.ToggleUiShareTray);
+    public async Task ToggleMute() => await SendCommand(ClientMessage.ToggleMute);
+    public async Task ToggleVideo() => await SendCommand(ClientMessage.ToggleVideo);
+    public async Task ToggleHand() => await SendCommand(ClientMessage.ToggleHand);
+    public async Task ToggleBackgroundBlur() => await SendCommand(ClientMessage.ToggleBackgroundBlur);
+    public async Task LeaveCall() => await SendCommand(ClientMessage.LeaveCall);
+    public async Task StopSharing() => await SendCommand(ClientMessage.StopSharing);
+    public async Task QueryState() => await SendCommand(ClientMessage.QueryState);
+    public async Task SendReactionApplause() => await SendCommand(ClientMessage.SendReactionApplause);
+    public async Task SendReactionLaugh() => await SendCommand(ClientMessage.SendReactionLaugh);
+    public async Task SendReactionLike() => await SendCommand(ClientMessage.SendReactionLike);
+    public async Task SendReactionLove() => await SendCommand(ClientMessage.SendReactionLove);
+    public async Task SendReactionWow() => await SendCommand(ClientMessage.SendReactionWow);
+    public async Task ToggleUiChat() => await SendCommand(ClientMessage.ToggleUiChat);
+    public async Task ToggleUiShareTray() => await SendCommand(ClientMessage.ToggleUiShareTray);
     public async Task ToggleSharing()
     {
         if (_isSharingChanged.Value)
@@ -221,5 +218,15 @@ public class NewTeamsClient : TeamsClientBase
         {
             await ToggleUiShareTray();
         }
+    }
+
+    public override void Dispose()
+    {
+        if (_disposed) return;
+        _connectedSubscription?.Dispose();
+        _receivedSubscription?.Dispose();
+        _disposed = true;
+        base.Dispose(); // Run base class's Dispose first!
+        GC.SuppressFinalize(this);
     }
 }
