@@ -196,7 +196,7 @@ public class TeamsClient : TeamsClientBase, IDisposable
 
     public async Task ToggleMute() => await SendCommand(ClientMessage.ToggleMute).ConfigureAwait(false);
     public async Task ToggleVideo() => await SendCommand(ClientMessage.ToggleVideo).ConfigureAwait(false);
-    public async Task ToggleHand() => await SendCommand(ClientMessage.ToggleHand);
+    public async Task ToggleHand() => await SendCommand(ClientMessage.ToggleHand).ConfigureAwait(false);
     public async Task ToggleBackgroundBlur() => await SendCommand(ClientMessage.ToggleBackgroundBlur).ConfigureAwait(false);
     public async Task LeaveCall() => await SendCommand(ClientMessage.LeaveCall).ConfigureAwait(false);
     public async Task StopSharing() => await SendCommand(ClientMessage.StopSharing).ConfigureAwait(false);
@@ -212,11 +212,11 @@ public class TeamsClient : TeamsClientBase, IDisposable
     {
         if (_isSharingChanged.Value)
         {
-            await StopSharing();
+            await StopSharing().ConfigureAwait(false);
         }
         else
         {
-            await ToggleUiShareTray();
+            await ToggleUiShareTray().ConfigureAwait(false);
         }
     }
 
