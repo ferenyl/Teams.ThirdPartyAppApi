@@ -110,7 +110,7 @@ public class TeamsClient : TeamsClientBase, IDisposable
         {
             clientMessage.RequestId = Interlocked.Increment(ref _requestId);
             var message = JsonSerializer.Serialize(clientMessage, _serializerOptions);
-            await SendCommand(message);
+            await SendCommand(message).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -194,20 +194,20 @@ public class TeamsClient : TeamsClientBase, IDisposable
         return Observable.Empty<Unit>();
     }
 
-    public async Task ToggleMute() => await SendCommand(ClientMessage.ToggleMute);
-    public async Task ToggleVideo() => await SendCommand(ClientMessage.ToggleVideo);
+    public async Task ToggleMute() => await SendCommand(ClientMessage.ToggleMute).ConfigureAwait(false);
+    public async Task ToggleVideo() => await SendCommand(ClientMessage.ToggleVideo).ConfigureAwait(false);
     public async Task ToggleHand() => await SendCommand(ClientMessage.ToggleHand);
-    public async Task ToggleBackgroundBlur() => await SendCommand(ClientMessage.ToggleBackgroundBlur);
-    public async Task LeaveCall() => await SendCommand(ClientMessage.LeaveCall);
-    public async Task StopSharing() => await SendCommand(ClientMessage.StopSharing);
-    public async Task QueryState() => await SendCommand(ClientMessage.QueryState);
-    public async Task SendReactionApplause() => await SendCommand(ClientMessage.SendReactionApplause);
-    public async Task SendReactionLaugh() => await SendCommand(ClientMessage.SendReactionLaugh);
-    public async Task SendReactionLike() => await SendCommand(ClientMessage.SendReactionLike);
-    public async Task SendReactionLove() => await SendCommand(ClientMessage.SendReactionLove);
-    public async Task SendReactionWow() => await SendCommand(ClientMessage.SendReactionWow);
-    public async Task ToggleUiChat() => await SendCommand(ClientMessage.ToggleUiChat);
-    public async Task ToggleUiShareTray() => await SendCommand(ClientMessage.ToggleUiShareTray);
+    public async Task ToggleBackgroundBlur() => await SendCommand(ClientMessage.ToggleBackgroundBlur).ConfigureAwait(false);
+    public async Task LeaveCall() => await SendCommand(ClientMessage.LeaveCall).ConfigureAwait(false);
+    public async Task StopSharing() => await SendCommand(ClientMessage.StopSharing).ConfigureAwait(false);
+    public async Task QueryState() => await SendCommand(ClientMessage.QueryState).ConfigureAwait(false);
+    public async Task SendReactionApplause() => await SendCommand(ClientMessage.SendReactionApplause).ConfigureAwait(false);
+    public async Task SendReactionLaugh() => await SendCommand(ClientMessage.SendReactionLaugh).ConfigureAwait(false);
+    public async Task SendReactionLike() => await SendCommand(ClientMessage.SendReactionLike).ConfigureAwait(false);
+    public async Task SendReactionLove() => await SendCommand(ClientMessage.SendReactionLove).ConfigureAwait(false);
+    public async Task SendReactionWow() => await SendCommand(ClientMessage.SendReactionWow).ConfigureAwait(false);
+    public async Task ToggleUiChat() => await SendCommand(ClientMessage.ToggleUiChat).ConfigureAwait(false);
+    public async Task ToggleUiShareTray() => await SendCommand(ClientMessage.ToggleUiShareTray).ConfigureAwait(false);
     public async Task ToggleSharing()
     {
         if (_isSharingChanged.Value)

@@ -7,6 +7,7 @@ using Teams.ThirdPartyAppApi.Adapters;
 
 [assembly: InternalsVisibleTo("Teams.ThirdPartyAppApi.Tests")]
 namespace Teams.ThirdPartyAppApi;
+
 internal class WebSocketHandler : IDisposable
 {
     private readonly IClientWebSocket _webSocket;
@@ -204,8 +205,14 @@ internal class WebSocketHandler : IDisposable
     {
         _manuallyDisconnected = true;
 
-        try { await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", cancellationToken); }
-        catch (Exception ex) { Console.Error.WriteLine($"DisconnectAsync error: {ex}"); }
+        try
+        {
+            await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"DisconnectAsync error: {ex}");
+        }
 
         StopReceivingMessages();
         _whenStateChanged.OnNextIfValueChanged(_webSocket.State);
@@ -250,7 +257,7 @@ internal class WebSocketHandler : IDisposable
         {
             return;
         }
-        
+
         if (_webSocket.State is WebSocketState.CloseReceived)
         {
             var token = _connectionCancellationTokenSource?.Token ?? CancellationToken.None;
