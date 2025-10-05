@@ -15,11 +15,11 @@ var teamsPort = portEnv ? result : 8124;
 var teamsToken = Environment.GetEnvironmentVariable("teamstoken", EnvironmentVariableTarget.User) ?? string.Empty;
 
 
-await NewTeams();
+await StartTeams();
 
 
 
-async Task NewTeams()
+async Task StartTeams()
 {
     var Teams = new TeamsClient(teamsIp, teamsPort, teamsToken, "TeamsLocalApi", "TeamsLocalApi device", "TeamsLocalApi app", "1.0.0", autoReconnect: true, cts.Token) ?? throw new Exception("Could not create client");
 
