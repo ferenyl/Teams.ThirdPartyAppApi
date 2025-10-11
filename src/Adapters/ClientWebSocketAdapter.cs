@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Teams.ThirdPartyAppApi.Tests")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 namespace Teams.ThirdPartyAppApi.Adapters;
+
 internal interface IClientWebSocket : IDisposable
 {
     WebSocketState State { get; }
@@ -39,20 +40,20 @@ internal class ClientWebSocketAdapter : IClientWebSocket, IDisposable
     public WebSocketCloseStatus? CloseStatus => _clientWebSocket.CloseStatus;
     public string? CloseStatusDescription => _clientWebSocket.CloseStatusDescription;
 
-    public Task ConnectAsync(Uri uri, CancellationToken cancellationToken) =>
-        _clientWebSocket.ConnectAsync(uri, cancellationToken);
+    public async Task ConnectAsync(Uri uri, CancellationToken cancellationToken) =>
+        await _clientWebSocket.ConnectAsync(uri, cancellationToken).ConfigureAwait(false);
 
-    public Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken) =>
-        _clientWebSocket.SendAsync(buffer, messageType, endOfMessage, cancellationToken);
+    public async Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken) =>
+        await _clientWebSocket.SendAsync(buffer, messageType, endOfMessage, cancellationToken).ConfigureAwait(false);
 
-    public Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken) =>
-        _clientWebSocket.ReceiveAsync(buffer, cancellationToken);
+    public async Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken) =>
+        await _clientWebSocket.ReceiveAsync(buffer, cancellationToken).ConfigureAwait(false);
 
-    public Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken) =>
-        _clientWebSocket.CloseAsync(closeStatus, statusDescription, cancellationToken);
+    public async Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken) =>
+        await _clientWebSocket.CloseAsync(closeStatus, statusDescription, cancellationToken).ConfigureAwait(false);
 
-    public Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken) =>
-        _clientWebSocket.CloseOutputAsync(closeStatus, statusDescription, cancellationToken);
+    public async Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken) =>
+        await _clientWebSocket.CloseOutputAsync(closeStatus, statusDescription, cancellationToken).ConfigureAwait(false);
 
     public void Abort() =>
         _clientWebSocket.Abort();
@@ -63,4 +64,3 @@ internal class ClientWebSocketAdapter : IClientWebSocket, IDisposable
         catch { }
     }
 }
-

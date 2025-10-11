@@ -12,7 +12,7 @@ public abstract class TeamsClientBase : IDisposable
     protected readonly Subject<string> _receivedMessages = new();
     protected readonly bool _autoReconnect;
     protected readonly CancellationToken _cancellationToken;
-    
+
     protected Uri Uri { get; private set; }
     private readonly WebSocketHandler _socket;
     public string Token { get; protected set; } = string.Empty;
@@ -57,19 +57,19 @@ public abstract class TeamsClientBase : IDisposable
 
     public async Task Connect(CancellationToken cancellationToken = default)
     {
-        await _socket.ConnectAsync(cancellationToken);
+        await _socket.ConnectAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task Disconnect(CancellationToken cancellationToken = default)
     {
-        await _socket.DisconnectAsync(cancellationToken);
+        await _socket.DisconnectAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task Reconnect()
     {
-        await _socket.ReconnectAsync();
+        await _socket.ReconnectAsync().ConfigureAwait(false);
     }
-    
+
     internal async Task SendCommand(string clientMessage)
     {
         await _socket.SendMessageAsync(clientMessage, _cancellationToken);
@@ -77,7 +77,7 @@ public abstract class TeamsClientBase : IDisposable
 
     internal bool TryDeserialize<T>(string json, out T? result)
     {
-        try        
+        try
         {
             result = JsonSerializer.Deserialize<T>(json, _serializerOptions);
             return true;
