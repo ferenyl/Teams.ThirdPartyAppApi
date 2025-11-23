@@ -86,7 +86,8 @@ public class StateManagementBenchmarks
     [Benchmark(Description = "State Equals() - equal states")]
     public bool StateEqualsTrue()
     {
-        return _initialState.Equals(_initialState);
+        var copy = MeetingStateSnapshot.Default;
+        return _initialState.Equals(copy);
     }
 
     [Benchmark(Description = "State Equals() - different states")]

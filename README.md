@@ -87,7 +87,7 @@ The `TeamsClient` interacts with the new Teams app via WebSocket connection.
 
 ```cs
 TeamsClient(
-    string url,              // WebSocket URL (typically "127.0.0.1")
+    string url,              // Hostname or IP address (typically "127.0.0.1")
     string manufacturer,     // Your company name
     string device,          // Device name/identifier
     string app,             // Your application name

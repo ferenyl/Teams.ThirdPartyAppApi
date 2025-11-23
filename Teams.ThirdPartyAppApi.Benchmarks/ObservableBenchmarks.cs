@@ -11,7 +11,6 @@ public class ObservableBenchmarks
 {
     private BehaviorSubject<bool> _boolSubject = null!;
     private BehaviorSubject<int> _intSubject = null!;
-    private IDisposable _subscription = null!;
     private int _counter;
 
     [GlobalSetup]
@@ -25,7 +24,6 @@ public class ObservableBenchmarks
     [GlobalCleanup]
     public void Cleanup()
     {
-        _subscription?.Dispose();
         _boolSubject?.Dispose();
         _intSubject?.Dispose();
     }

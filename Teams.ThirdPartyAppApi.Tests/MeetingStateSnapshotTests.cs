@@ -120,7 +120,7 @@ public class MeetingStateSnapshotTests
         var state = MeetingStateSnapshot.Default;
 
         // Act & Assert
-        Assert.False(state.Equals(null));
+        Assert.False(object.Equals(state, null));
     }
 
     [Fact]
@@ -128,9 +128,10 @@ public class MeetingStateSnapshotTests
     {
         // Arrange
         var state = MeetingStateSnapshot.Default;
+        object differentType = "not a state";
 
         // Act & Assert
-        Assert.False(state.Equals("not a state"));
+        Assert.False(state.Equals(differentType));
     }
 
     [Fact]

@@ -28,6 +28,8 @@ internal class WebSocketHandler : IDisposable
     private bool _disposed = false;
     private CancellationTokenSource? _linkedConnectTokenSource;
     private CancellationTokenSource? _linkedReceiveTokenSource;
+    private int _receiveLoopRunning = 0;
+    private const int DefaultBufferSize = 1024 * 4;
 
     public IObservable<WebSocketState> ConnectionStatus => _whenStateChanged.AsObservable();
     public IObservable<string> ReceivedMessages => _messageSubject.AsObservable();
@@ -121,7 +123,11 @@ internal class WebSocketHandler : IDisposable
                 
                 if (_autoReconnect)
                 {
-                    _reconnectTimer?.Change(TimeSpan.Zero, TimeSpan.FromSeconds(5));
+                    if (_reconnectTimer == null)
+                    {
+                        _reconnectTimer = new System.Threading.Timer(state => AutoReconnectCallback(), null, Timeout.Infinite, Timeout.Infinite);
+                    }
+                    _reconnectTimer.Change(TimeSpan.Zero, TimeSpan.FromSeconds(5));
                 }
 
                 _connectionCancellationTokenSource?.Dispose();
@@ -148,6 +154,11 @@ internal class WebSocketHandler : IDisposable
 
     private void StartReceivingMessagesAsync(CancellationToken cancellationToken)
     {
+        if (Interlocked.CompareExchange(ref _receiveLoopRunning, 1, 0) == 1)
+        {
+            return; // Already running
+        }
+
         _receiveCancellationTokenSource?.Dispose();
         _receiveCancellationTokenSource = new CancellationTokenSource();
         
@@ -160,12 +171,13 @@ internal class WebSocketHandler : IDisposable
     private void StopReceivingMessages()
     {
         _receiveCancellationTokenSource?.Cancel();
+        Interlocked.Exchange(ref _receiveLoopRunning, 0);
     }
 
     private async Task ReceiveMessagesAsync(CancellationToken cancellationToken)
     {
         await WaitForConnection(cancellationToken);
-        var buffer = ArrayPool<byte>.Shared.Rent(1024 * 4);
+        var buffer = ArrayPool<byte>.Shared.Rent(DefaultBufferSize);
         try
         {
             while (!cancellationToken.IsCancellationRequested && _webSocket.State == WebSocketState.Open)
@@ -194,7 +206,8 @@ internal class WebSocketHandler : IDisposable
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(buffer);
+            ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+            Interlocked.Exchange(ref _receiveLoopRunning, 0);
         }
     }
 
@@ -220,7 +233,7 @@ internal class WebSocketHandler : IDisposable
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(buffer);
+            ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
         }
     }
 

@@ -8,7 +8,7 @@ public class ObservableExtensionsTests
     public void OnNextIfValueChanged_ShouldNotEmit_WhenValueIsTheSame()
     {
         // Arrange
-        var subject = new BehaviorSubject<int>(5);
+        using var subject = new BehaviorSubject<int>(5);
         var emittedValues = new List<int>();
         subject.Subscribe(value => emittedValues.Add(value));
 
@@ -24,7 +24,7 @@ public class ObservableExtensionsTests
     public void OnNextIfValueChanged_ShouldEmit_WhenValueIsChanged()
     {
         // Arrange
-        var subject = new BehaviorSubject<int>(5);
+        using var subject = new BehaviorSubject<int>(5);
         var emittedValues = new List<int>();
         subject.Subscribe(value => emittedValues.Add(value));
 
@@ -53,7 +53,7 @@ public class ObservableExtensionsTests
     public void OnNextIfValueChanged_ShouldWorkWithStrings()
     {
         // Arrange
-        var subject = new BehaviorSubject<string>("hello");
+        using var subject = new BehaviorSubject<string>("hello");
         var emittedValues = new List<string>();
         subject.Subscribe(value => emittedValues.Add(value));
 
@@ -71,7 +71,7 @@ public class ObservableExtensionsTests
     public void OnNextIfValueChanged_ShouldWorkWithBooleans()
     {
         // Arrange
-        var subject = new BehaviorSubject<bool>(false);
+        using var subject = new BehaviorSubject<bool>(false);
         var emittedValues = new List<bool>();
         subject.Subscribe(value => emittedValues.Add(value));
 
