@@ -39,6 +39,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Teams.ThirdPartyAppApi.Tests" />
+    <InternalsVisibleTo Include="Teams.ThirdPartyAppApi.Benchmarks" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
     <PackageReference Include="System.Reactive" Version="6.1.0" />
     <PackageReference Include="Macross.Json.Extensions" Version="3.0.0" />
