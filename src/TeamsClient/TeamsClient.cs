@@ -9,24 +9,7 @@ namespace Teams.ThirdPartyAppApi.TeamsClient;
 public class TeamsClient : TeamsClientBase, IDisposable
 {
     private readonly Subject<string> _tokenChanged = new();
-    private readonly BehaviorSubject<bool> _isMutedChanged = new(false);
-    private readonly BehaviorSubject<bool> _isHandRaisedChanged = new(false);
-    private readonly BehaviorSubject<bool> _isInMeetingChanged = new(false);
-    private readonly BehaviorSubject<bool> _isRecordingOnChanged = new(false);
-    private readonly BehaviorSubject<bool> _isBackgroundBlurredChanged = new(false);
-    private readonly BehaviorSubject<bool> _isSharingChanged = new(false);
-    private readonly BehaviorSubject<bool> _hasUnreadMessagesChanged = new(false);
-    private readonly BehaviorSubject<bool> _isVideoOnChanged = new(false);
-    private readonly BehaviorSubject<bool> _canToggleMuteChanged = new(false);
-    private readonly BehaviorSubject<bool> _canToggleVideoChanged = new(false);
-    private readonly BehaviorSubject<bool> _canToggleHandChanged = new(false);
-    private readonly BehaviorSubject<bool> _canToggleBlurChanged = new(false);
-    private readonly BehaviorSubject<bool> _canLeaveChanged = new(false);
-    private readonly BehaviorSubject<bool> _canReactChanged = new(false);
-    private readonly BehaviorSubject<bool> _canToggleShareTrayChanged = new(false);
-    private readonly BehaviorSubject<bool> _canToggleChatChanged = new(false);
-    private readonly BehaviorSubject<bool> _canStopSharingChanged = new(false);
-    private readonly BehaviorSubject<bool> _canPairChanged = new(false);
+    private readonly BehaviorSubject<MeetingStateSnapshot> _stateChanged = new(MeetingStateSnapshot.Default);
     private readonly IDisposable? _connectedSubscription;
     private readonly IDisposable? _receivedSubscription;
     private bool _disposed;
@@ -57,44 +40,46 @@ public class TeamsClient : TeamsClientBase, IDisposable
 
 
     public IObservable<string> TokenChanged => _tokenChanged;
-    public IObservable<bool> IsMutedChanged => _isMutedChanged;
-    public IObservable<bool> IsHandRaisedChanged => _isHandRaisedChanged;
-    public IObservable<bool> IsInMeetingChanged => _isInMeetingChanged;
-    public IObservable<bool> IsRecordingOnChanged => _isRecordingOnChanged;
-    public IObservable<bool> IsBackgroundBlurredChanged => _isBackgroundBlurredChanged;
-    public IObservable<bool> IsSharingChanged => _isSharingChanged;
-    public IObservable<bool> HasUnreadMessagesChanged => _hasUnreadMessagesChanged;
-    public IObservable<bool> IsVideoOnChanged => _isVideoOnChanged;
+    public IObservable<MeetingStateSnapshot> StateChanged => _stateChanged;
+    
+    public IObservable<bool> IsMutedChanged => _stateChanged.Select(s => s.IsMuted).DistinctUntilChanged();
+    public IObservable<bool> IsHandRaisedChanged => _stateChanged.Select(s => s.IsHandRaised).DistinctUntilChanged();
+    public IObservable<bool> IsInMeetingChanged => _stateChanged.Select(s => s.IsInMeeting).DistinctUntilChanged();
+    public IObservable<bool> IsRecordingOnChanged => _stateChanged.Select(s => s.IsRecordingOn).DistinctUntilChanged();
+    public IObservable<bool> IsBackgroundBlurredChanged => _stateChanged.Select(s => s.IsBackgroundBlurred).DistinctUntilChanged();
+    public IObservable<bool> IsSharingChanged => _stateChanged.Select(s => s.IsSharing).DistinctUntilChanged();
+    public IObservable<bool> HasUnreadMessagesChanged => _stateChanged.Select(s => s.HasUnreadMessages).DistinctUntilChanged();
+    public IObservable<bool> IsVideoOnChanged => _stateChanged.Select(s => s.IsVideoOn).DistinctUntilChanged();
 
-    public IObservable<bool> CanToggleMuteChanged => _canToggleMuteChanged;
-    public IObservable<bool> CanToggleVideoChanged => _canToggleVideoChanged;
-    public IObservable<bool> CanToggleHandChanged => _canToggleHandChanged;
-    public IObservable<bool> CanToggleBlurChanged => _canToggleBlurChanged;
-    public IObservable<bool> CanLeaveChanged => _canLeaveChanged;
-    public IObservable<bool> CanReactChanged => _canReactChanged;
-    public IObservable<bool> CanToggleShareTrayChanged => _canToggleShareTrayChanged;
-    public IObservable<bool> CanToggleChatChanged => _canToggleChatChanged;
-    public IObservable<bool> CanStopSharingChanged => _canStopSharingChanged;
-    public IObservable<bool> CanPairChanged => _canPairChanged;
+    public IObservable<bool> CanToggleMuteChanged => _stateChanged.Select(s => s.CanToggleMute).DistinctUntilChanged();
+    public IObservable<bool> CanToggleVideoChanged => _stateChanged.Select(s => s.CanToggleVideo).DistinctUntilChanged();
+    public IObservable<bool> CanToggleHandChanged => _stateChanged.Select(s => s.CanToggleHand).DistinctUntilChanged();
+    public IObservable<bool> CanToggleBlurChanged => _stateChanged.Select(s => s.CanToggleBlur).DistinctUntilChanged();
+    public IObservable<bool> CanLeaveChanged => _stateChanged.Select(s => s.CanLeave).DistinctUntilChanged();
+    public IObservable<bool> CanReactChanged => _stateChanged.Select(s => s.CanReact).DistinctUntilChanged();
+    public IObservable<bool> CanToggleShareTrayChanged => _stateChanged.Select(s => s.CanToggleShareTray).DistinctUntilChanged();
+    public IObservable<bool> CanToggleChatChanged => _stateChanged.Select(s => s.CanToggleChat).DistinctUntilChanged();
+    public IObservable<bool> CanStopSharingChanged => _stateChanged.Select(s => s.CanStopSharing).DistinctUntilChanged();
+    public IObservable<bool> CanPairChanged => _stateChanged.Select(s => s.CanPair).DistinctUntilChanged();
 
-    public bool IsMuted => _isMutedChanged.Value;
-    public bool IsHandRaised => _isHandRaisedChanged.Value;
-    public bool IsInMeeting => _isInMeetingChanged.Value;
-    public bool IsRecordingOn => _isRecordingOnChanged.Value;
-    public bool IsBackgroundBlurred => _isBackgroundBlurredChanged.Value;
-    public bool IsSharing => _isSharingChanged.Value;
-    public bool HasUnreadMessages => _hasUnreadMessagesChanged.Value;
-    public bool IsVideoOn => _isVideoOnChanged.Value;
-    public bool CanToggleMute => _canToggleMuteChanged.Value;
-    public bool CanToggleVideo => _canToggleVideoChanged.Value;
-    public bool CanToggleHand => _canToggleHandChanged.Value;
-    public bool CanToggleBlur => _canToggleBlurChanged.Value;
-    public bool CanLeave => _canLeaveChanged.Value;
-    public bool CanReact => _canReactChanged.Value;
-    public bool CanToggleShareTray => _canToggleShareTrayChanged.Value;
-    public bool CanToggleChat => _canToggleChatChanged.Value;
-    public bool CanStopSharing => _canStopSharingChanged.Value;
-    public bool CanPair => _canPairChanged.Value;
+    public bool IsMuted => _stateChanged.Value.IsMuted;
+    public bool IsHandRaised => _stateChanged.Value.IsHandRaised;
+    public bool IsInMeeting => _stateChanged.Value.IsInMeeting;
+    public bool IsRecordingOn => _stateChanged.Value.IsRecordingOn;
+    public bool IsBackgroundBlurred => _stateChanged.Value.IsBackgroundBlurred;
+    public bool IsSharing => _stateChanged.Value.IsSharing;
+    public bool HasUnreadMessages => _stateChanged.Value.HasUnreadMessages;
+    public bool IsVideoOn => _stateChanged.Value.IsVideoOn;
+    public bool CanToggleMute => _stateChanged.Value.CanToggleMute;
+    public bool CanToggleVideo => _stateChanged.Value.CanToggleVideo;
+    public bool CanToggleHand => _stateChanged.Value.CanToggleHand;
+    public bool CanToggleBlur => _stateChanged.Value.CanToggleBlur;
+    public bool CanLeave => _stateChanged.Value.CanLeave;
+    public bool CanReact => _stateChanged.Value.CanReact;
+    public bool CanToggleShareTray => _stateChanged.Value.CanToggleShareTray;
+    public bool CanToggleChat => _stateChanged.Value.CanToggleChat;
+    public bool CanStopSharing => _stateChanged.Value.CanStopSharing;
+    public bool CanPair => _stateChanged.Value.CanPair;
 
     protected override Uri BuildUri()
     {
@@ -149,49 +134,41 @@ public class TeamsClient : TeamsClientBase, IDisposable
         if (message.MeetingUpdate is null)
             return;
 
+        var newState = new MeetingStateSnapshot
+        {
+            IsMuted = message.MeetingUpdate.MeetingState.IsMuted,
+            IsHandRaised = message.MeetingUpdate.MeetingState.IsHandRaised,
+            IsInMeeting = message.MeetingUpdate.MeetingState.IsInMeeting,
+            IsRecordingOn = message.MeetingUpdate.MeetingState.IsRecordingOn,
+            IsBackgroundBlurred = message.MeetingUpdate.MeetingState.IsBackgroundBlurred,
+            IsSharing = message.MeetingUpdate.MeetingState.IsSharing,
+            HasUnreadMessages = message.MeetingUpdate.MeetingState.HasUnreadMessages,
+            IsVideoOn = message.MeetingUpdate.MeetingState.IsVideoOn,
+            CanToggleMute = message.MeetingUpdate.MeetingPermissions.CanToggleMute,
+            CanToggleVideo = message.MeetingUpdate.MeetingPermissions.CanToggleVideo,
+            CanToggleHand = message.MeetingUpdate.MeetingPermissions.CanToggleHand,
+            CanToggleBlur = message.MeetingUpdate.MeetingPermissions.CanToggleBlur,
+            CanLeave = message.MeetingUpdate.MeetingPermissions.CanLeave,
+            CanReact = message.MeetingUpdate.MeetingPermissions.CanReact,
+            CanToggleShareTray = message.MeetingUpdate.MeetingPermissions.CanToggleShareTray,
+            CanToggleChat = message.MeetingUpdate.MeetingPermissions.CanToggleChat,
+            CanStopSharing = message.MeetingUpdate.MeetingPermissions.CanStopSharing,
+            CanPair = message.MeetingUpdate.MeetingPermissions.CanPair
+        };
 
-        _isMutedChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsMuted);
-        _isHandRaisedChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsHandRaised);
-        _isInMeetingChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsInMeeting);
-        _isRecordingOnChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsRecordingOn);
-        _isBackgroundBlurredChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsBackgroundBlurred);
-        _isSharingChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsSharing);
-        _hasUnreadMessagesChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.HasUnreadMessages);
-        _isVideoOnChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsVideoOn);
-
-        _canToggleMuteChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleMute);
-        _canToggleVideoChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleVideo);
-        _canToggleHandChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleHand);
-        _canToggleBlurChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleBlur);
-        _canLeaveChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanLeave);
-        _canReactChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanReact);
-        _canToggleShareTrayChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleShareTray);
-        _canToggleChatChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanToggleChat);
-        _canStopSharingChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanStopSharing);
-        _canPairChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingPermissions.CanPair);
+        if (!newState.Equals(_stateChanged.Value))
+        {
+            _stateChanged.OnNext(newState);
+        }
     }
 
     private IObservable<Unit> OnNotConnected()
     {
-        _isMutedChanged.OnNextIfValueChanged(false);
-        _isHandRaisedChanged.OnNextIfValueChanged(false);
-        _isInMeetingChanged.OnNextIfValueChanged(false);
-        _isRecordingOnChanged.OnNextIfValueChanged(false);
-        _isBackgroundBlurredChanged.OnNextIfValueChanged(false);
-        _isSharingChanged.OnNextIfValueChanged(false);
-        _hasUnreadMessagesChanged.OnNextIfValueChanged(false);
-        _isVideoOnChanged.OnNextIfValueChanged(false);
-
-        _canToggleMuteChanged.OnNextIfValueChanged(false);
-        _canToggleVideoChanged.OnNextIfValueChanged(false);
-        _canToggleHandChanged.OnNextIfValueChanged(false);
-        _canToggleBlurChanged.OnNextIfValueChanged(false);
-        _canLeaveChanged.OnNextIfValueChanged(false);
-        _canReactChanged.OnNextIfValueChanged(false);
-        _canToggleShareTrayChanged.OnNextIfValueChanged(false);
-        _canToggleChatChanged.OnNextIfValueChanged(false);
-        _canStopSharingChanged.OnNextIfValueChanged(false);
-        _canPairChanged.OnNextIfValueChanged(false);
+        var defaultState = MeetingStateSnapshot.Default;
+        if (!defaultState.Equals(_stateChanged.Value))
+        {
+            _stateChanged.OnNext(defaultState);
+        }
 
         return Observable.Empty<Unit>();
     }
@@ -214,7 +191,7 @@ public class TeamsClient : TeamsClientBase, IDisposable
     {
         if (_disposed) return;
         
-        if (_isSharingChanged.Value)
+        if (_stateChanged.Value.IsSharing)
         {
             await StopSharing().ConfigureAwait(false);
         }
@@ -233,24 +210,7 @@ public class TeamsClient : TeamsClientBase, IDisposable
         _receivedSubscription?.Dispose();
         
         _tokenChanged?.Dispose();
-        _isMutedChanged?.Dispose();
-        _isHandRaisedChanged?.Dispose();
-        _isInMeetingChanged?.Dispose();
-        _isRecordingOnChanged?.Dispose();
-        _isBackgroundBlurredChanged?.Dispose();
-        _isSharingChanged?.Dispose();
-        _hasUnreadMessagesChanged?.Dispose();
-        _isVideoOnChanged?.Dispose();
-        _canToggleMuteChanged?.Dispose();
-        _canToggleVideoChanged?.Dispose();
-        _canToggleHandChanged?.Dispose();
-        _canToggleBlurChanged?.Dispose();
-        _canLeaveChanged?.Dispose();
-        _canReactChanged?.Dispose();
-        _canToggleShareTrayChanged?.Dispose();
-        _canToggleChatChanged?.Dispose();
-        _canStopSharingChanged?.Dispose();
-        _canPairChanged?.Dispose();
+        _stateChanged?.Dispose();
         
         base.Dispose();
         GC.SuppressFinalize(this);

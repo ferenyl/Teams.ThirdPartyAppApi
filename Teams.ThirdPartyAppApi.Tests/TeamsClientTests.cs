@@ -27,6 +27,7 @@ public class TeamsClientTests : IDisposable
 
         // Assert
         Assert.NotNull(_client.TokenChanged);
+        Assert.NotNull(_client.StateChanged);
         Assert.NotNull(_client.IsMutedChanged);
         Assert.NotNull(_client.IsHandRaisedChanged);
         Assert.NotNull(_client.IsInMeetingChanged);
