@@ -15,9 +15,49 @@ public class TeamsClient : TeamsClientBase, IDisposable
     private bool _disposed;
     private int _requestId;
 
+    // Cached observables to prevent creating new pipelines on each access
+    private readonly IObservable<bool> _isMutedChanged;
+    private readonly IObservable<bool> _isHandRaisedChanged;
+    private readonly IObservable<bool> _isInMeetingChanged;
+    private readonly IObservable<bool> _isRecordingOnChanged;
+    private readonly IObservable<bool> _isBackgroundBlurredChanged;
+    private readonly IObservable<bool> _isSharingChanged;
+    private readonly IObservable<bool> _hasUnreadMessagesChanged;
+    private readonly IObservable<bool> _isVideoOnChanged;
+    private readonly IObservable<bool> _canToggleMuteChanged;
+    private readonly IObservable<bool> _canToggleVideoChanged;
+    private readonly IObservable<bool> _canToggleHandChanged;
+    private readonly IObservable<bool> _canToggleBlurChanged;
+    private readonly IObservable<bool> _canLeaveChanged;
+    private readonly IObservable<bool> _canReactChanged;
+    private readonly IObservable<bool> _canToggleShareTrayChanged;
+    private readonly IObservable<bool> _canToggleChatChanged;
+    private readonly IObservable<bool> _canStopSharingChanged;
+    private readonly IObservable<bool> _canPairChanged;
+
     public TeamsClient(string url, int port, string token, string manufacturer, string device, string app, string appVersion, bool autoReconnect = true, CancellationToken cancellationToken = default)
     : base(url, port, token, autoReconnect, new ClientInformation(manufacturer, device, app, appVersion), cancellationToken)
     {
+        // Initialize cached observables once to prevent memory leaks
+        _isMutedChanged = _stateChanged.Select(s => s.IsMuted).DistinctUntilChanged();
+        _isHandRaisedChanged = _stateChanged.Select(s => s.IsHandRaised).DistinctUntilChanged();
+        _isInMeetingChanged = _stateChanged.Select(s => s.IsInMeeting).DistinctUntilChanged();
+        _isRecordingOnChanged = _stateChanged.Select(s => s.IsRecordingOn).DistinctUntilChanged();
+        _isBackgroundBlurredChanged = _stateChanged.Select(s => s.IsBackgroundBlurred).DistinctUntilChanged();
+        _isSharingChanged = _stateChanged.Select(s => s.IsSharing).DistinctUntilChanged();
+        _hasUnreadMessagesChanged = _stateChanged.Select(s => s.HasUnreadMessages).DistinctUntilChanged();
+        _isVideoOnChanged = _stateChanged.Select(s => s.IsVideoOn).DistinctUntilChanged();
+        _canToggleMuteChanged = _stateChanged.Select(s => s.CanToggleMute).DistinctUntilChanged();
+        _canToggleVideoChanged = _stateChanged.Select(s => s.CanToggleVideo).DistinctUntilChanged();
+        _canToggleHandChanged = _stateChanged.Select(s => s.CanToggleHand).DistinctUntilChanged();
+        _canToggleBlurChanged = _stateChanged.Select(s => s.CanToggleBlur).DistinctUntilChanged();
+        _canLeaveChanged = _stateChanged.Select(s => s.CanLeave).DistinctUntilChanged();
+        _canReactChanged = _stateChanged.Select(s => s.CanReact).DistinctUntilChanged();
+        _canToggleShareTrayChanged = _stateChanged.Select(s => s.CanToggleShareTray).DistinctUntilChanged();
+        _canToggleChatChanged = _stateChanged.Select(s => s.CanToggleChat).DistinctUntilChanged();
+        _canStopSharingChanged = _stateChanged.Select(s => s.CanStopSharing).DistinctUntilChanged();
+        _canPairChanged = _stateChanged.Select(s => s.CanPair).DistinctUntilChanged();
+
         _connectedSubscription = IsConnectedChanged
              .Select(IsConnected => IsConnected ? Observable.FromAsync(async () => await QueryState()) : OnNotConnected())
              .Concat()
@@ -42,25 +82,25 @@ public class TeamsClient : TeamsClientBase, IDisposable
     public IObservable<string> TokenChanged => _tokenChanged;
     public IObservable<MeetingStateSnapshot> StateChanged => _stateChanged;
     
-    public IObservable<bool> IsMutedChanged => _stateChanged.Select(s => s.IsMuted).DistinctUntilChanged();
-    public IObservable<bool> IsHandRaisedChanged => _stateChanged.Select(s => s.IsHandRaised).DistinctUntilChanged();
-    public IObservable<bool> IsInMeetingChanged => _stateChanged.Select(s => s.IsInMeeting).DistinctUntilChanged();
-    public IObservable<bool> IsRecordingOnChanged => _stateChanged.Select(s => s.IsRecordingOn).DistinctUntilChanged();
-    public IObservable<bool> IsBackgroundBlurredChanged => _stateChanged.Select(s => s.IsBackgroundBlurred).DistinctUntilChanged();
-    public IObservable<bool> IsSharingChanged => _stateChanged.Select(s => s.IsSharing).DistinctUntilChanged();
-    public IObservable<bool> HasUnreadMessagesChanged => _stateChanged.Select(s => s.HasUnreadMessages).DistinctUntilChanged();
-    public IObservable<bool> IsVideoOnChanged => _stateChanged.Select(s => s.IsVideoOn).DistinctUntilChanged();
+    public IObservable<bool> IsMutedChanged => _isMutedChanged;
+    public IObservable<bool> IsHandRaisedChanged => _isHandRaisedChanged;
+    public IObservable<bool> IsInMeetingChanged => _isInMeetingChanged;
+    public IObservable<bool> IsRecordingOnChanged => _isRecordingOnChanged;
+    public IObservable<bool> IsBackgroundBlurredChanged => _isBackgroundBlurredChanged;
+    public IObservable<bool> IsSharingChanged => _isSharingChanged;
+    public IObservable<bool> HasUnreadMessagesChanged => _hasUnreadMessagesChanged;
+    public IObservable<bool> IsVideoOnChanged => _isVideoOnChanged;
 
-    public IObservable<bool> CanToggleMuteChanged => _stateChanged.Select(s => s.CanToggleMute).DistinctUntilChanged();
-    public IObservable<bool> CanToggleVideoChanged => _stateChanged.Select(s => s.CanToggleVideo).DistinctUntilChanged();
-    public IObservable<bool> CanToggleHandChanged => _stateChanged.Select(s => s.CanToggleHand).DistinctUntilChanged();
-    public IObservable<bool> CanToggleBlurChanged => _stateChanged.Select(s => s.CanToggleBlur).DistinctUntilChanged();
-    public IObservable<bool> CanLeaveChanged => _stateChanged.Select(s => s.CanLeave).DistinctUntilChanged();
-    public IObservable<bool> CanReactChanged => _stateChanged.Select(s => s.CanReact).DistinctUntilChanged();
-    public IObservable<bool> CanToggleShareTrayChanged => _stateChanged.Select(s => s.CanToggleShareTray).DistinctUntilChanged();
-    public IObservable<bool> CanToggleChatChanged => _stateChanged.Select(s => s.CanToggleChat).DistinctUntilChanged();
-    public IObservable<bool> CanStopSharingChanged => _stateChanged.Select(s => s.CanStopSharing).DistinctUntilChanged();
-    public IObservable<bool> CanPairChanged => _stateChanged.Select(s => s.CanPair).DistinctUntilChanged();
+    public IObservable<bool> CanToggleMuteChanged => _canToggleMuteChanged;
+    public IObservable<bool> CanToggleVideoChanged => _canToggleVideoChanged;
+    public IObservable<bool> CanToggleHandChanged => _canToggleHandChanged;
+    public IObservable<bool> CanToggleBlurChanged => _canToggleBlurChanged;
+    public IObservable<bool> CanLeaveChanged => _canLeaveChanged;
+    public IObservable<bool> CanReactChanged => _canReactChanged;
+    public IObservable<bool> CanToggleShareTrayChanged => _canToggleShareTrayChanged;
+    public IObservable<bool> CanToggleChatChanged => _canToggleChatChanged;
+    public IObservable<bool> CanStopSharingChanged => _canStopSharingChanged;
+    public IObservable<bool> CanPairChanged => _canPairChanged;
 
     public bool IsMuted => _stateChanged.Value.IsMuted;
     public bool IsHandRaised => _stateChanged.Value.IsHandRaised;

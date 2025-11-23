@@ -12,6 +12,8 @@ public class ObservableBenchmarks
     private BehaviorSubject<bool> _boolSubject = null!;
     private BehaviorSubject<int> _intSubject = null!;
     private int _counter;
+    private IDisposable _singleSubscription = null!;
+    private IDisposable[] _multipleSubscriptions = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -19,11 +21,27 @@ public class ObservableBenchmarks
         _boolSubject = new BehaviorSubject<bool>(false);
         _intSubject = new BehaviorSubject<int>(0);
         _counter = 0;
+        
+        // Pre-create subscriptions to isolate OnNext performance
+        _singleSubscription = _boolSubject.Subscribe(_ => _counter++);
+        _multipleSubscriptions = new IDisposable[10];
+        for (int i = 0; i < 10; i++)
+        {
+            _multipleSubscriptions[i] = _boolSubject.Subscribe(_ => _counter++);
+        }
     }
 
     [GlobalCleanup]
     public void Cleanup()
     {
+        _singleSubscription?.Dispose();
+        if (_multipleSubscriptions != null)
+        {
+            foreach (var sub in _multipleSubscriptions)
+            {
+                sub?.Dispose();
+            }
+        }
         _boolSubject?.Dispose();
         _intSubject?.Dispose();
     }
@@ -37,25 +55,15 @@ public class ObservableBenchmarks
     [Benchmark(Description = "OnNext to BehaviorSubject (1 subscriber)")]
     public void OnNextSingleSubscriber()
     {
-        using var sub = _boolSubject.Subscribe(_ => _counter++);
+        // Subscription created in Setup, only measures OnNext
         _boolSubject.OnNext(true);
     }
 
     [Benchmark(Description = "OnNext to BehaviorSubject (10 subscribers)")]
     public void OnNextMultipleSubscribers()
     {
-        var subs = new IDisposable[10];
-        for (int i = 0; i < 10; i++)
-        {
-            subs[i] = _boolSubject.Subscribe(_ => _counter++);
-        }
-
+        // Subscriptions created in Setup, only measures OnNext
         _boolSubject.OnNext(true);
-
-        foreach (var sub in subs)
-        {
-            sub.Dispose();
-        }
     }
 
     [Benchmark(Description = "DistinctUntilChanged - same value")]
