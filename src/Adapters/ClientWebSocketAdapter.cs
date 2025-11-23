@@ -22,6 +22,7 @@ internal interface IClientWebSocket : IDisposable
 internal class ClientWebSocketAdapter : IClientWebSocket, IDisposable
 {
     private ClientWebSocket _clientWebSocket;
+    private bool _disposed;
 
     public ClientWebSocketAdapter()
     {
@@ -30,6 +31,8 @@ internal class ClientWebSocketAdapter : IClientWebSocket, IDisposable
 
     public void CreateNewSocket()
     {
+        if (_disposed) return;
+        
         try { _clientWebSocket.Dispose(); }
         catch { }
 
@@ -60,7 +63,10 @@ internal class ClientWebSocketAdapter : IClientWebSocket, IDisposable
 
     public void Dispose()
     {
-        try { _clientWebSocket.Dispose(); }
+        if (_disposed) return;
+        _disposed = true;
+        
+        try { _clientWebSocket?.Dispose(); }
         catch { }
     }
 }

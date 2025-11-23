@@ -106,6 +106,8 @@ public class TeamsClient : TeamsClientBase, IDisposable
 
     private async Task SendCommand(ClientMessage clientMessage)
     {
+        if (_disposed) return;
+        
         try
         {
             clientMessage.RequestId = Interlocked.Increment(ref _requestId);
@@ -114,13 +116,14 @@ public class TeamsClient : TeamsClientBase, IDisposable
         }
         catch (Exception ex)
         {
-            // Log the error, e.g., to Console or logging system
             Console.Error.WriteLine($"SendCommand error: {ex}");
         }
     }
 
     protected void OnReceived(string json)
     {
+        if (_disposed) return;
+        
         if (!TryDeserialize<ServerMessage>(json, out var message) || message is null)
             return;
 
@@ -147,7 +150,6 @@ public class TeamsClient : TeamsClientBase, IDisposable
             return;
 
 
-        // set values
         _isMutedChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsMuted);
         _isHandRaisedChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsHandRaised);
         _isInMeetingChanged.OnNextIfValueChanged(message.MeetingUpdate.MeetingState.IsInMeeting);
@@ -210,6 +212,8 @@ public class TeamsClient : TeamsClientBase, IDisposable
     public async Task ToggleUiShareTray() => await SendCommand(ClientMessage.ToggleUiShareTray).ConfigureAwait(false);
     public async Task ToggleSharing()
     {
+        if (_disposed) return;
+        
         if (_isSharingChanged.Value)
         {
             await StopSharing().ConfigureAwait(false);
@@ -223,10 +227,32 @@ public class TeamsClient : TeamsClientBase, IDisposable
     public override void Dispose()
     {
         if (_disposed) return;
+        _disposed = true;
+        
         _connectedSubscription?.Dispose();
         _receivedSubscription?.Dispose();
-        _disposed = true;
-        base.Dispose(); // Run base class's Dispose first!
+        
+        _tokenChanged?.Dispose();
+        _isMutedChanged?.Dispose();
+        _isHandRaisedChanged?.Dispose();
+        _isInMeetingChanged?.Dispose();
+        _isRecordingOnChanged?.Dispose();
+        _isBackgroundBlurredChanged?.Dispose();
+        _isSharingChanged?.Dispose();
+        _hasUnreadMessagesChanged?.Dispose();
+        _isVideoOnChanged?.Dispose();
+        _canToggleMuteChanged?.Dispose();
+        _canToggleVideoChanged?.Dispose();
+        _canToggleHandChanged?.Dispose();
+        _canToggleBlurChanged?.Dispose();
+        _canLeaveChanged?.Dispose();
+        _canReactChanged?.Dispose();
+        _canToggleShareTrayChanged?.Dispose();
+        _canToggleChatChanged?.Dispose();
+        _canStopSharingChanged?.Dispose();
+        _canPairChanged?.Dispose();
+        
+        base.Dispose();
         GC.SuppressFinalize(this);
     }
 }

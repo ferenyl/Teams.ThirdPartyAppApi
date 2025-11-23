@@ -1,4 +1,5 @@
-﻿using System.Net.WebSockets;
+﻿using System.Buffers;
+using System.Net.WebSockets;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
@@ -23,8 +24,10 @@ internal class WebSocketHandler : IDisposable
     private readonly SemaphoreSlim _closeLock = new(1, 1);
 
     private bool _manuallyDisconnected = false;
-    private readonly Timer _reconnectTimer;
+    private Timer? _reconnectTimer;
     private bool _disposed = false;
+    private CancellationTokenSource? _linkedConnectTokenSource;
+    private CancellationTokenSource? _linkedReceiveTokenSource;
 
     public IObservable<WebSocketState> ConnectionStatus => _whenStateChanged.AsObservable();
     public IObservable<string> ReceivedMessages => _messageSubject.AsObservable();
@@ -60,7 +63,7 @@ internal class WebSocketHandler : IDisposable
 
     private void ReconnectTimerCallback(object? state)
     {
-        if (_disposed) return;
+        if (_disposed || _manuallyDisconnected) return;
         _ = AutoReconnectCallbackSafe();
     }
 
@@ -80,9 +83,17 @@ internal class WebSocketHandler : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        
         _reconnectTimer?.Dispose();
+        _reconnectTimer = null;
+        
         _receiveCancellationTokenSource?.Cancel();
+        _receiveCancellationTokenSource?.Dispose();
         _connectionCancellationTokenSource?.Cancel();
+        _connectionCancellationTokenSource?.Dispose();
+        _linkedConnectTokenSource?.Dispose();
+        _linkedReceiveTokenSource?.Dispose();
+        
         _connectLock?.Dispose();
         _closeLock?.Dispose();
         _whenStateChanged?.Dispose();
@@ -93,6 +104,8 @@ internal class WebSocketHandler : IDisposable
 
     public async Task ConnectAsync(CancellationToken cancellationToken)
     {
+        if (_disposed) return;
+        
         await _connectLock.WaitAsync(cancellationToken);
         try
         {
@@ -105,11 +118,20 @@ internal class WebSocketHandler : IDisposable
             if (_webSocket.State is WebSocketState.None)
             {
                 _manuallyDisconnected = false;
+                
+                if (_autoReconnect)
+                {
+                    _reconnectTimer?.Change(TimeSpan.Zero, TimeSpan.FromSeconds(5));
+                }
 
+                _connectionCancellationTokenSource?.Dispose();
                 _connectionCancellationTokenSource = new CancellationTokenSource();
-                var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _connectionCancellationTokenSource.Token).Token;
-                await _webSocket.ConnectAsync(_uri, combinedToken);
-                StartReceivingMessagesAsync(combinedToken);
+                
+                _linkedConnectTokenSource?.Dispose();
+                _linkedConnectTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _connectionCancellationTokenSource.Token);
+                
+                await _webSocket.ConnectAsync(_uri, _linkedConnectTokenSource.Token);
+                StartReceivingMessagesAsync(_linkedConnectTokenSource.Token);
             }
         }
         catch (Exception ex)
@@ -126,9 +148,13 @@ internal class WebSocketHandler : IDisposable
 
     private void StartReceivingMessagesAsync(CancellationToken cancellationToken)
     {
+        _receiveCancellationTokenSource?.Dispose();
         _receiveCancellationTokenSource = new CancellationTokenSource();
-        var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _receiveCancellationTokenSource.Token).Token;
-        Task.Factory.StartNew(() => ReceiveMessagesAsync(combinedToken), combinedToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        
+        _linkedReceiveTokenSource?.Dispose();
+        _linkedReceiveTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _receiveCancellationTokenSource.Token);
+        
+        Task.Factory.StartNew(() => ReceiveMessagesAsync(_linkedReceiveTokenSource.Token), _linkedReceiveTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
     }
 
     private void StopReceivingMessages()
@@ -139,54 +165,69 @@ internal class WebSocketHandler : IDisposable
     private async Task ReceiveMessagesAsync(CancellationToken cancellationToken)
     {
         await WaitForConnection(cancellationToken);
-        var buffer = new byte[1024 * 4];
-        while (!cancellationToken.IsCancellationRequested && _webSocket.State == WebSocketState.Open)
+        var buffer = ArrayPool<byte>.Shared.Rent(1024 * 4);
+        try
         {
-            WebSocketReceiveResult? result;
-            try
+            while (!cancellationToken.IsCancellationRequested && _webSocket.State == WebSocketState.Open)
             {
-                result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
-            }
-            catch (TaskCanceledException)
-            {
-                // Reception cancelled, likely due to closure or network problems
-                Console.WriteLine("ReceiveMessagesAsync cancelled.");
-                break;
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"ReceiveMessagesAsync error: {ex}");
-                break;
-            }
-            if (result is null)
-                continue;
+                WebSocketReceiveResult? result;
+                try
+                {
+                    result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken);
+                }
+                catch (TaskCanceledException)
+                {
+                    Console.WriteLine("ReceiveMessagesAsync cancelled.");
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"ReceiveMessagesAsync error: {ex}");
+                    break;
+                }
+                if (result is null)
+                    continue;
 
-            var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-            _messageSubject.OnNext(message);
+                var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                _messageSubject.OnNext(message);
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
         }
     }
 
     public async Task SendMessageAsync(string message, CancellationToken cancellationToken)
     {
+        if (_disposed) return;
+        
         await WaitForConnection(cancellationToken);
 
         if (_webSocket.State != WebSocketState.Open)
             return;
 
-        var buffer = Encoding.UTF8.GetBytes(message);
+        var byteCount = Encoding.UTF8.GetByteCount(message);
+        var buffer = ArrayPool<byte>.Shared.Rent(byteCount);
         try
         {
-            await _webSocket.SendAsync(new ArraySegment<byte>(buffer), WebSocketMessageType.Text, true, cancellationToken);
+            Encoding.UTF8.GetBytes(message, 0, message.Length, buffer, 0);
+            await _webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, byteCount), WebSocketMessageType.Text, true, cancellationToken);
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"SendMessageAsync error: {ex}");
         }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
     }
 
     public async Task ReconnectAsync()
     {
-        // A token must be provided; use a new one if none exists
+        if (_disposed) return;
+        
         var token = _connectionCancellationTokenSource?.Token ?? CancellationToken.None;
         await WaitForConnection(token);
 
@@ -203,7 +244,14 @@ internal class WebSocketHandler : IDisposable
 
     public async Task DisconnectAsync(CancellationToken cancellationToken)
     {
+        if (_disposed) return;
+        
         _manuallyDisconnected = true;
+        
+        if (_autoReconnect)
+        {
+            _reconnectTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        }
 
         try
         {
@@ -216,7 +264,6 @@ internal class WebSocketHandler : IDisposable
 
         StopReceivingMessages();
         _whenStateChanged.OnNextIfValueChanged(_webSocket.State);
-        _reconnectTimer?.Dispose();
     }
 
     private async Task WaitForConnection(CancellationToken cancellationToken)
@@ -232,6 +279,8 @@ internal class WebSocketHandler : IDisposable
 
     private async Task Close(CancellationToken cancellationToken)
     {
+        if (_disposed) return;
+        
         await _closeLock.WaitAsync(cancellationToken);
         try
         {
@@ -253,7 +302,7 @@ internal class WebSocketHandler : IDisposable
 
     private async Task AutoReconnectCallback()
     {
-        if (_webSocket.State is WebSocketState.Connecting or WebSocketState.Open or WebSocketState.None)
+        if (_disposed || _webSocket.State is WebSocketState.Connecting or WebSocketState.Open or WebSocketState.None)
         {
             return;
         }
@@ -265,7 +314,8 @@ internal class WebSocketHandler : IDisposable
         }
         else
         {
-            _whenStateChecked.OnNext(_webSocket.State);
+            if (!_whenStateChecked.IsDisposed)
+                _whenStateChecked.OnNext(_webSocket.State);
         }
     }
 }
