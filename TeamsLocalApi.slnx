@@ -1,0 +1,17 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Build/">
+    <File Path=".github/workflows/dotnet.yml" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="demo/Teams.ThirdPartyAppApi.ConsoleDemo.csproj" />
+  <Project Path="src/Teams.ThirdPartyAppApi.csproj" />
+  <Project Path="Teams.ThirdPartyAppApi.Benchmarks/Teams.ThirdPartyAppApi.Benchmarks.csproj" />
+  <Project Path="Teams.ThirdPartyAppApi.Tests/Teams.ThirdPartyAppApi.Tests.csproj" />
+</Solution>

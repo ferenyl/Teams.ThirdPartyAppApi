@@ -85,17 +85,17 @@ internal class WebSocketHandler : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        
+
         _reconnectTimer?.Dispose();
         _reconnectTimer = null;
-        
+
         _receiveCancellationTokenSource?.Cancel();
         _receiveCancellationTokenSource?.Dispose();
         _connectionCancellationTokenSource?.Cancel();
         _connectionCancellationTokenSource?.Dispose();
         _linkedConnectTokenSource?.Dispose();
         _linkedReceiveTokenSource?.Dispose();
-        
+
         _connectLock?.Dispose();
         _closeLock?.Dispose();
         _whenStateChanged?.Dispose();
@@ -107,7 +107,7 @@ internal class WebSocketHandler : IDisposable
     public async Task ConnectAsync(CancellationToken cancellationToken)
     {
         if (_disposed) return;
-        
+
         await _connectLock.WaitAsync(cancellationToken);
         try
         {
@@ -120,22 +120,22 @@ internal class WebSocketHandler : IDisposable
             if (_webSocket.State is WebSocketState.None)
             {
                 _manuallyDisconnected = false;
-                
+
                 if (_autoReconnect)
                 {
                     if (_reconnectTimer == null)
                     {
-                        _reconnectTimer = new System.Threading.Timer(state => AutoReconnectCallbackSafe(), null, Timeout.Infinite, Timeout.Infinite);
+                        _reconnectTimer = new System.Threading.Timer(state => _ = AutoReconnectCallbackSafe(), null, Timeout.Infinite, Timeout.Infinite);
                     }
                     _reconnectTimer.Change(TimeSpan.Zero, TimeSpan.FromSeconds(5));
                 }
 
                 _connectionCancellationTokenSource?.Dispose();
                 _connectionCancellationTokenSource = new CancellationTokenSource();
-                
+
                 _linkedConnectTokenSource?.Dispose();
                 _linkedConnectTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _connectionCancellationTokenSource.Token);
-                
+
                 await _webSocket.ConnectAsync(_uri, _linkedConnectTokenSource.Token);
                 StartReceivingMessagesAsync(_linkedConnectTokenSource.Token);
             }
@@ -161,10 +161,10 @@ internal class WebSocketHandler : IDisposable
 
         _receiveCancellationTokenSource?.Dispose();
         _receiveCancellationTokenSource = new CancellationTokenSource();
-        
+
         _linkedReceiveTokenSource?.Dispose();
         _linkedReceiveTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _receiveCancellationTokenSource.Token);
-        
+
         Task.Factory.StartNew(() => ReceiveMessagesAsync(_linkedReceiveTokenSource.Token), _linkedReceiveTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
     }
 
@@ -214,7 +214,7 @@ internal class WebSocketHandler : IDisposable
     public async Task SendMessageAsync(string message, CancellationToken cancellationToken)
     {
         if (_disposed) return;
-        
+
         await WaitForConnection(cancellationToken);
 
         if (_webSocket.State != WebSocketState.Open)
@@ -240,7 +240,7 @@ internal class WebSocketHandler : IDisposable
     public async Task ReconnectAsync()
     {
         if (_disposed) return;
-        
+
         var token = _connectionCancellationTokenSource?.Token ?? CancellationToken.None;
         await WaitForConnection(token);
 
@@ -258,9 +258,9 @@ internal class WebSocketHandler : IDisposable
     public async Task DisconnectAsync(CancellationToken cancellationToken)
     {
         if (_disposed) return;
-        
+
         _manuallyDisconnected = true;
-        
+
         if (_autoReconnect)
         {
             _reconnectTimer?.Change(Timeout.Infinite, Timeout.Infinite);
@@ -293,7 +293,7 @@ internal class WebSocketHandler : IDisposable
     private async Task Close(CancellationToken cancellationToken)
     {
         if (_disposed) return;
-        
+
         await _closeLock.WaitAsync(cancellationToken);
         try
         {
