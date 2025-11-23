@@ -125,7 +125,7 @@ internal class WebSocketHandler : IDisposable
                 {
                     if (_reconnectTimer == null)
                     {
-                        _reconnectTimer = new System.Threading.Timer(state => AutoReconnectCallback(), null, Timeout.Infinite, Timeout.Infinite);
+                        _reconnectTimer = new System.Threading.Timer(state => AutoReconnectCallbackSafe(), null, Timeout.Infinite, Timeout.Infinite);
                     }
                     _reconnectTimer.Change(TimeSpan.Zero, TimeSpan.FromSeconds(5));
                 }
@@ -206,7 +206,7 @@ internal class WebSocketHandler : IDisposable
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+            ArrayPool<byte>.Shared.Return(buffer, clearArray: false);
             Interlocked.Exchange(ref _receiveLoopRunning, 0);
         }
     }
@@ -233,7 +233,7 @@ internal class WebSocketHandler : IDisposable
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+            ArrayPool<byte>.Shared.Return(buffer, clearArray: false);
         }
     }
 

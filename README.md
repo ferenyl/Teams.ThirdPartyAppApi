@@ -28,7 +28,6 @@ Install-Package Teams.ThirdPartyAppApi
 
 ```cs
 using Teams.ThirdPartyAppApi.TeamsClient;
-using System.Reactive.Linq;
 
 // Create a cancellation token
 var cts = new CancellationTokenSource();

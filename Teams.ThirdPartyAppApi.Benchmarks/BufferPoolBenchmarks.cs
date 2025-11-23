@@ -13,23 +13,19 @@ public class BufferPoolBenchmarks
     private const int LargeBufferSize = 65536;
 
     [Benchmark(Baseline = true, Description = "New Array - Small (256 bytes)")]
-    public byte[] AllocateSmallArrayNew()
+    public void AllocateSmallArrayNew()
     {
         var buffer = new byte[SmallBufferSize];
-        // Simulate usage
         buffer[0] = 1;
-        return buffer;
     }
 
     [Benchmark(Description = "ArrayPool - Small (256 bytes)")]
-    public byte[] AllocateSmallArrayPool()
+    public void AllocateSmallArrayPool()
     {
         var buffer = ArrayPool<byte>.Shared.Rent(SmallBufferSize);
         try
         {
-            // Simulate usage
             buffer[0] = 1;
-            return buffer;
         }
         finally
         {
@@ -38,21 +34,19 @@ public class BufferPoolBenchmarks
     }
 
     [Benchmark(Description = "New Array - Medium (4KB)")]
-    public byte[] AllocateMediumArrayNew()
+    public void AllocateMediumArrayNew()
     {
         var buffer = new byte[MediumBufferSize];
         buffer[0] = 1;
-        return buffer;
     }
 
     [Benchmark(Description = "ArrayPool - Medium (4KB)")]
-    public byte[] AllocateMediumArrayPool()
+    public void AllocateMediumArrayPool()
     {
         var buffer = ArrayPool<byte>.Shared.Rent(MediumBufferSize);
         try
         {
             buffer[0] = 1;
-            return buffer;
         }
         finally
         {
@@ -61,21 +55,19 @@ public class BufferPoolBenchmarks
     }
 
     [Benchmark(Description = "New Array - Large (64KB)")]
-    public byte[] AllocateLargeArrayNew()
+    public void AllocateLargeArrayNew()
     {
         var buffer = new byte[LargeBufferSize];
         buffer[0] = 1;
-        return buffer;
     }
 
     [Benchmark(Description = "ArrayPool - Large (64KB)")]
-    public byte[] AllocateLargeArrayPool()
+    public void AllocateLargeArrayPool()
     {
         var buffer = ArrayPool<byte>.Shared.Rent(LargeBufferSize);
         try
         {
             buffer[0] = 1;
-            return buffer;
         }
         finally
         {

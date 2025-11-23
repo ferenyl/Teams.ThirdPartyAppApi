@@ -1,6 +1,6 @@
 namespace Teams.ThirdPartyAppApi.TeamsClient;
 
-public class MeetingStateSnapshot
+public sealed class MeetingStateSnapshot : IEquatable<MeetingStateSnapshot>
 {
     public bool IsMuted { get; init; }
     public bool IsHandRaised { get; init; }
@@ -70,9 +70,10 @@ public class MeetingStateSnapshot
         };
     }
 
-    public override bool Equals(object? obj)
+    public bool Equals(MeetingStateSnapshot? other)
     {
-        if (obj is not MeetingStateSnapshot other) return false;
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
         
         return IsMuted == other.IsMuted &&
                IsHandRaised == other.IsHandRaised &&
@@ -92,6 +93,11 @@ public class MeetingStateSnapshot
                CanToggleChat == other.CanToggleChat &&
                CanStopSharing == other.CanStopSharing &&
                CanPair == other.CanPair;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return Equals(obj as MeetingStateSnapshot);
     }
 
     public override int GetHashCode()
