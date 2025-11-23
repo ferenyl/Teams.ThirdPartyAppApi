@@ -20,7 +20,7 @@ Install-Package Teams.ThirdPartyAppApi
 
 ## Requirements
 
-- .NET 8.0 or higher
+- .NET 10.0 or higher
 - Microsoft Teams (new Teams client)
 - Must run on the same machine as Teams (localhost only) or use a socket proxy for remote connections
 
@@ -77,6 +77,7 @@ if (client.IsInMeeting && client.CanToggleMute)
 The `TeamsClient` interacts with the new Teams app via WebSocket connection.
 
 **Important Notes:**
+
 - New Teams only accepts connections from localhost
 - The client must run on the same computer as Teams
 - Use a socket proxy for remote connections
@@ -97,6 +98,7 @@ TeamsClient(
 ```
 
 **Alternative constructors:**
+
 ```cs
 // Without token (Teams will provide one)
 new TeamsClient("127.0.0.1", "manufacturer", "device", "app", "1.0");
@@ -257,6 +259,7 @@ if (_teamsClient.IsInMeeting && _teamsClient.CanToggleMute)
 ### Available State Properties
 
 **Meeting State:**
+
 - `IsMuted` / `IsMutedChanged`
 - `IsHandRaised` / `IsHandRaisedChanged`
 - `IsInMeeting` / `IsInMeetingChanged`
@@ -267,6 +270,7 @@ if (_teamsClient.IsInMeeting && _teamsClient.CanToggleMute)
 - `IsVideoOn` / `IsVideoOnChanged`
 
 **Meeting Permissions:**
+
 - `CanToggleMute` / `CanToggleMuteChanged`
 - `CanToggleVideo` / `CanToggleVideoChanged`
 - `CanToggleHand` / `CanToggleHandChanged`
@@ -334,6 +338,7 @@ catch (Exception ex)
 ## Demo App
 
 There is a complete demo console application in the solution that demonstrates:
+
 - Connecting to Teams
 - Subscribing to state changes
 - Sending commands
@@ -349,4 +354,3 @@ If you want to contribute to this project, please create a pull request. We will
 ## Bugs and feature requests
 
 If you find a bug or have a feature request, please create an issue in the issue tracker. We will review the issue and try to fix it as soon as possible.
-
