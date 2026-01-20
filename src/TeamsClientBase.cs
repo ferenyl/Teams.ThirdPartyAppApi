@@ -55,23 +55,29 @@ public abstract class TeamsClientBase : IDisposable
 
     protected abstract Uri BuildUri();
 
+    private bool _disposed;
+
     public async Task Connect(CancellationToken cancellationToken = default)
     {
+        if (_disposed) return;
         await _socket.ConnectAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task Disconnect(CancellationToken cancellationToken = default)
     {
+        if (_disposed) return;
         await _socket.DisconnectAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task Reconnect()
     {
+        if (_disposed) return;
         await _socket.ReconnectAsync().ConfigureAwait(false);
     }
 
     internal async Task SendCommand(string clientMessage)
     {
+        if (_disposed) return;
         await _socket.SendMessageAsync(clientMessage, _cancellationToken);
     }
 
@@ -92,10 +98,13 @@ public abstract class TeamsClientBase : IDisposable
 
     public virtual void Dispose()
     {
-        _connectionStatusSubscription.Dispose();
-        _receivedMessagesSubscription.Dispose();
-        _isConnectedChanged.Dispose();
-        _receivedMessages.Dispose();
-        _socket.Dispose();
+        if (_disposed) return;
+        _disposed = true;
+        
+        _connectionStatusSubscription?.Dispose();
+        _receivedMessagesSubscription?.Dispose();
+        _isConnectedChanged?.Dispose();
+        _receivedMessages?.Dispose();
+        _socket?.Dispose();
     }
 }
