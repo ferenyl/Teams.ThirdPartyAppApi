@@ -335,6 +335,15 @@ catch (Exception ex)
 }
 ```
 
+To react to WebSocket disconnects or receive-loop failures, subscribe to `ConnectionErrors`:
+
+```cs
+client.ConnectionErrors.Subscribe(ex =>
+{
+    Console.WriteLine($"WebSocket error: {ex.Message}");
+});
+```
+
 ## Demo App
 
 There is a complete demo console application in the solution that demonstrates:

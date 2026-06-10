@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using System.Reactive.Linq;
 
 namespace Teams.ThirdPartyAppApi.Tests;
 
@@ -142,5 +143,19 @@ public class TeamsClientBaseTests
         // Assert
         Assert.False(result);
         Assert.Null(deserialized);
+    }
+
+    [Fact]
+    public void ConnectionErrors_ShouldBeObservable()
+    {
+        // Arrange
+        var clientInfo = new ClientInformation("manufacturer", "device", "app", "1.0");
+        using var client = new TestTeamsClient("localhost", 8124, "token", false, clientInfo, CancellationToken.None);
+
+        // Act
+        var observable = client.ConnectionErrors;
+
+        // Assert
+        Assert.NotNull(observable);
     }
 }

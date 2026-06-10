@@ -27,6 +27,8 @@ public abstract class TeamsClientBase : IDisposable
 
     private readonly IDisposable _connectionStatusSubscription;
     private readonly IDisposable _receivedMessagesSubscription;
+    private readonly IDisposable _connectionErrorsSubscription;
+    private readonly Subject<Exception> _connectionErrors = new();
     private readonly ILogger? _logger;
 
     protected TeamsClientBase(string url, int port, string token, bool autoReconnect, ClientInformation clientInformation, CancellationToken cancellationToken, ILogger? logger = null)
@@ -47,10 +49,12 @@ public abstract class TeamsClientBase : IDisposable
             _isConnectedChanged.OnNextIfValueChanged(state == WebSocketState.Open));
 
         _receivedMessagesSubscription = _socket.ReceivedMessages.Subscribe(message => _receivedMessages.OnNext(message));
+        _connectionErrorsSubscription = _socket.ConnectionErrors.Subscribe(ex => _connectionErrors.OnNext(ex));
     }
 
     public IObservable<bool> IsConnectedChanged => _isConnectedChanged.AsObservable();
     public IObservable<string> ReceivedMessages => _receivedMessages.AsObservable();
+    public IObservable<Exception> ConnectionErrors => _connectionErrors.AsObservable();
     public bool IsConnected => _isConnectedChanged.Value;
 
     protected abstract Uri BuildUri();
@@ -103,8 +107,10 @@ public abstract class TeamsClientBase : IDisposable
         
         _connectionStatusSubscription?.Dispose();
         _receivedMessagesSubscription?.Dispose();
+        _connectionErrorsSubscription?.Dispose();
         _isConnectedChanged?.Dispose();
         _receivedMessages?.Dispose();
+        _connectionErrors?.Dispose();
         _socket?.Dispose();
     }
 }
