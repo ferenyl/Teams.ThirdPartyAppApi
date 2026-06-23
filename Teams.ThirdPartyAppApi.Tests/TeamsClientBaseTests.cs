@@ -143,4 +143,18 @@ public class TeamsClientBaseTests
         Assert.False(result);
         Assert.Null(deserialized);
     }
+
+    [Fact]
+    public void ConnectionErrors_ShouldBeObservable()
+    {
+        // Arrange
+        var clientInfo = new ClientInformation("manufacturer", "device", "app", "1.0");
+        using var client = new TestTeamsClient("localhost", 8124, "token", false, clientInfo, CancellationToken.None);
+
+        // Act
+        var observable = client.ConnectionErrors;
+
+        // Assert
+        Assert.NotNull(observable);
+    }
 }
