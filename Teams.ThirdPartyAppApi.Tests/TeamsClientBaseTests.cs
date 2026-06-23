@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using System.Reactive.Linq;
 
 namespace Teams.ThirdPartyAppApi.Tests;
 
