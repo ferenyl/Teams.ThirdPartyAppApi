@@ -80,7 +80,7 @@ public class WebSocketHandlerTests
             .ThrowsAsync(receiveException);
 
         var tcs = new TaskCompletionSource<Exception>(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var subscription = _webSocketHandler.ConnectionErrors.Subscribe(tcs.SetResult);
+using var subscription = _webSocketHandler.ConnectionErrors.Subscribe(ex => tcs.TrySetResult(ex));
 
         await _webSocketHandler.ConnectAsync(CancellationToken.None);
 
