@@ -1,6 +1,5 @@
-﻿using Moq;
+using Moq;
 using System.Net.WebSockets;
-using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using Teams.ThirdPartyAppApi.Adapters;
 using Teams.ThirdPartyAppApi.Tests.Mocks;
@@ -80,7 +79,8 @@ public class WebSocketHandlerTests
             .ThrowsAsync(receiveException);
 
         var tcs = new TaskCompletionSource<Exception>(TaskCreationOptions.RunContinuationsAsynchronously);
-using var subscription = _webSocketHandler.ConnectionErrors.Subscribe(ex => tcs.TrySetResult(ex));
+using var subscription = _webSocketHandler.ConnectionErrors.Subscribe(ex => tcs.TrySetResult(ex));
+
 
         await _webSocketHandler.ConnectAsync(CancellationToken.None);
 
