@@ -335,7 +335,7 @@ catch (Exception ex)
 }
 ```
 
-To react to WebSocket disconnects or receive-loop failures, subscribe to `ConnectionErrors`:
+To react to WebSocket receive-loop failures (exceptions thrown while receiving), subscribe to `ConnectionErrors`:
 
 ```cs
 client.ConnectionErrors.Subscribe(ex =>
