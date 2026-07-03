@@ -103,6 +103,7 @@ internal class WebSocketHandler : IDisposable
         _whenStateChanged?.Dispose();
         _whenStateChecked?.Dispose();
         _messageSubject?.Dispose();
+        _errorSubject?.Dispose();
         _webSocket?.Dispose();
     }
 
