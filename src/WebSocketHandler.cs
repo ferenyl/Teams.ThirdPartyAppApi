@@ -15,6 +15,7 @@ internal class WebSocketHandler : IDisposable
     private readonly BehaviorSubject<WebSocketState> _whenStateChanged;
     private readonly Subject<WebSocketState> _whenStateChecked = new();
     private readonly Subject<string> _messageSubject = new();
+    private readonly Subject<Exception> _errorSubject = new();
     internal readonly Uri _uri;
     private readonly bool _autoReconnect;
     private CancellationTokenSource? _receiveCancellationTokenSource;
@@ -33,6 +34,7 @@ internal class WebSocketHandler : IDisposable
 
     public IObservable<WebSocketState> ConnectionStatus => _whenStateChanged.AsObservable();
     public IObservable<string> ReceivedMessages => _messageSubject.AsObservable();
+    public IObservable<Exception> ConnectionErrors => _errorSubject.AsObservable();
 
 
 
@@ -101,6 +103,7 @@ internal class WebSocketHandler : IDisposable
         _whenStateChanged?.Dispose();
         _whenStateChecked?.Dispose();
         _messageSubject?.Dispose();
+        _errorSubject?.Dispose();
         _webSocket?.Dispose();
     }
 
@@ -194,6 +197,11 @@ internal class WebSocketHandler : IDisposable
                 }
                 catch (Exception ex)
                 {
+                    if (!_errorSubject.IsDisposed)
+                    {
+                        _errorSubject.OnNext(ex);
+                    }
+
                     Console.Error.WriteLine($"ReceiveMessagesAsync error: {ex}");
                     break;
                 }

@@ -1,4 +1,4 @@
-﻿using Moq;
+using Moq;
 using System.Net.WebSockets;
 using System.Reactive.Subjects;
 using Teams.ThirdPartyAppApi.Adapters;
@@ -64,6 +64,30 @@ public class WebSocketHandlerTests
 
         // Assert
         Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task ConnectionErrors_ShouldPublishReceiveFailures()
+    {
+        // Arrange
+        var receiveException = new WebSocketException("socket closed unexpectedly");
+        _mockClientWebSocket.SetupGet(ws => ws.State).Returns(WebSocketState.None);
+        _mockClientWebSocket.Setup(ws => ws.ConnectAsync(_testUri, It.IsAny<CancellationToken>()))
+            .Callback(() => _mockClientWebSocket.SetupGet(ws => ws.State).Returns(WebSocketState.Open))
+            .Returns(Task.CompletedTask);
+        _mockClientWebSocket.Setup(ws => ws.ReceiveAsync(It.IsAny<ArraySegment<byte>>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(receiveException);
+
+        var tcs = new TaskCompletionSource<Exception>(TaskCreationOptions.RunContinuationsAsynchronously);
+using var subscription = _webSocketHandler.ConnectionErrors.Subscribe(ex => tcs.TrySetResult(ex));
+
+
+        await _webSocketHandler.ConnectAsync(CancellationToken.None);
+
+        var observedException = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        // Assert
+        Assert.Same(receiveException, observedException);
     }
 
     [Fact]

@@ -29,6 +29,8 @@ async Task StartTeams()
         .Subscribe(connected => WriteLine(connected ? "Event: InMeeting" : "Event: NotInMeeting"));
     Teams.TokenChanged
         .Subscribe(token => WriteLine($"Event: TokenChanged: {token}"));
+    Teams.ConnectionErrors
+        .Subscribe(ex => Error.WriteLine($"Event: ConnectionError: {ex.Message}"));
 
     WriteLine("Connecting...");
     await Teams.Connect();
