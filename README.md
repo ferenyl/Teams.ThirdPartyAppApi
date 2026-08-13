@@ -4,6 +4,22 @@
 
 A .NET library to communicate with the [Microsoft Teams Third-party app API](https://support.microsoft.com/en-us/office/connect-third-party-devices-to-teams-aabca9f2-47bb-407f-9f9b-81a104a883d6), enabling you to control Teams meetings programmatically.
 
+## Teams local api deprication
+Teams will be removing the socket. For now you can reactivate it by adding a config file:
+
+Add a new file configuration.json in the Settings folder:
+
+Windows: %localappdata%\Packages\MSTeams_8wekyb3d8bbwe\LocalCache\Microsoft\MSTeams
+
+Mac: ~/Library/Containers/com.microsoft.teams2/Data/Library/Application Support/Microsoft/MSTeams
+
+```json
+{
+  "core/devMenuEnabled": true,
+  "thirdPartyDevices/thirdPartyDevicesManagerEnabled": true
+}
+```
+
 ## Installation
 
 Install via NuGet Package Manager:
