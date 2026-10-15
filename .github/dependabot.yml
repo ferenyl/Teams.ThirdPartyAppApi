@@ -7,12 +7,11 @@ updates:
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
+      interval: weekly
+      day: wednesday
+      time: "05:00"
+      timezone: Europe/Stockholm
     open-pull-requests-limit: 10
-    reviewers:
-      - "ferenyl"
     assignees:
       - "ferenyl"
     commit-message:
@@ -22,36 +21,19 @@ updates:
     labels:
       - "dependencies"
       - "nuget"
-    # Group minor and patch updates for better PR management
     groups:
-      production-dependencies:
-        patterns:
-          - "Microsoft.Extensions.*"
-          - "System.*"
-          - "Macross.*"
-        update-types:
-          - "minor"
-          - "patch"
-      test-dependencies:
-        patterns:
-          - "Microsoft.NET.Test.Sdk"
-          - "xunit*"
-          - "Moq"
-          - "coverlet.*"
-        update-types:
-          - "minor"
-          - "patch"
+      nuget:
+        patterns: ["*"]
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
+      interval: weekly
+      day: wednesday
+      time: "05:00"
+      timezone: Europe/Stockholm
     open-pull-requests-limit: 5
-    reviewers:
-      - "ferenyl"
     assignees:
       - "ferenyl"
     commit-message:
@@ -60,3 +42,6 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
+    groups:
+      github-actions:
+        patterns: ["*"]
