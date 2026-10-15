@@ -24,6 +24,9 @@ updates:
     groups:
       nuget:
         patterns: ["*"]
+      nuget-security:
+        applies-to: security-updates
+        patterns: ["*"]
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
@@ -44,4 +47,7 @@ updates:
       - "github-actions"
     groups:
       github-actions:
+        patterns: ["*"]
+      github-actions-security:
+        applies-to: security-updates
         patterns: ["*"]
